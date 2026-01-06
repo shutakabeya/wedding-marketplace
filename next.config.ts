@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    // このプロジェクト配下をワークスペースルートとして扱う
+    root: __dirname,
+  },
 };
 
 export default nextConfig;
