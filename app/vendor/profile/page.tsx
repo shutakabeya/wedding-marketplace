@@ -124,7 +124,7 @@ export default function VendorProfilePage() {
       }
 
       const data = await res.json()
-      
+
       if (type === 'logo') {
         setFormData({ ...formData, logoUrl: data.imageUrl })
       } else {
@@ -169,8 +169,21 @@ export default function VendorProfilePage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || '更新に失敗しました')
+        let errorMessage = '更新に失敗しました'
+        try {
+          const data = await res.json()
+          errorMessage = data.error || errorMessage
+          if (data.details) {
+            console.error('Validation details:', data.details)
+            errorMessage += '\n詳細: ' + JSON.stringify(data.details)
+          }
+        } catch (parseError) {
+          // JSONパースに失敗した場合、レスポンステキストを取得
+          const text = await res.text()
+          console.error('Error response:', text)
+          errorMessage = `更新に失敗しました (${res.status}: ${res.statusText})`
+        }
+        throw new Error(errorMessage)
       }
 
       alert('プロフィールを更新しました')

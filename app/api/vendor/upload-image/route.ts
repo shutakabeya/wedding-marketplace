@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,16 +40,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ファイルをbase64に変換
+    if (!supabaseAdmin) {
+      console.error('Supabase client is not configured')
+      return NextResponse.json(
+        { error: '画像ストレージの設定が完了していません（Supabase未設定）' },
+        { status: 500 }
+      )
+    }
+
+    // Supabase Storage にアップロード
+    const fileExt = file.name.split('.').pop() || 'png'
+    const fileName = `${type}-${Date.now()}.${fileExt}`
+    const filePath = `${session.id}/${fileName}`
+
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    const base64 = buffer.toString('base64')
-    const dataUrl = `data:${file.type};base64,${base64}`
 
-    // 将来的にSupabase Storageなどに移行する場合は、ここでアップロード処理を行う
-    // 現時点ではbase64データURLを返す
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('vendor-images')
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      })
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError)
+      return NextResponse.json(
+        { error: '画像のアップロードに失敗しました' },
+        { status: 500 }
+      )
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from('vendor-images').getPublicUrl(filePath)
+
     return NextResponse.json({
-      imageUrl: dataUrl,
+      imageUrl: publicUrl,
       type,
     })
   } catch (error) {

@@ -134,17 +134,19 @@ export async function PATCH(request: NextRequest) {
       })
     } else {
       // 既存のデフォルトプロフィールを更新
+      // undefinedの値を除外して、実際に更新する値のみを送信
+      const updateData: any = {}
+      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl
+      if (data.areas !== undefined) updateData.areas = data.areas
+      if (data.priceMin !== undefined) updateData.priceMin = data.priceMin
+      if (data.priceMax !== undefined) updateData.priceMax = data.priceMax
+      if (data.styleTags !== undefined) updateData.styleTags = data.styleTags
+      if (data.services !== undefined) updateData.services = data.services
+      if (data.constraints !== undefined) updateData.constraints = data.constraints
+
       await prisma.vendorProfile.update({
         where: { id: defaultProfile.id },
-        data: {
-          imageUrl: data.imageUrl,
-          areas: data.areas,
-          priceMin: data.priceMin,
-          priceMax: data.priceMax,
-          styleTags: data.styleTags,
-          services: data.services,
-          constraints: data.constraints,
-        },
+        data: updateData,
       })
     }
 
@@ -173,14 +175,17 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ vendor: vendorWithProfile })
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.issues)
       return NextResponse.json(
         { error: '入力データが不正です', details: error.issues },
         { status: 400 }
       )
     }
     console.error('Vendor profile PATCH error:', error)
+    // より詳細なエラーメッセージを返す
+    const errorMessage = error instanceof Error ? error.message : '更新に失敗しました'
     return NextResponse.json(
-      { error: '更新に失敗しました' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
