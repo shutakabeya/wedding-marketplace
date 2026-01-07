@@ -13,12 +13,21 @@ interface Vendor {
   categories: Array<{ category: { id: string; name: string } }>
   profile: {
     imageUrl: string | null
+    profileImages: string[]
     areas: string[]
     priceMin: number | null
     priceMax: number | null
     styleTags: string[]
     services: string | null
     constraints: string | null
+    categoryType: 'venue' | 'photographer' | 'dress' | 'planner' | 'other'
+    maxGuests: number | null
+    serviceTags: string[]
+    plans: Array<{
+      name: string
+      price: number
+      description?: string | null
+    }>
   } | null
   gallery: Array<{ id: string; imageUrl: string; caption: string | null }>
 }
@@ -41,10 +50,15 @@ export default function VendorProfilePage() {
     styleTagInput: '',
     services: '',
     constraints: '',
-    profileImageUrl: '',
+    profileImages: [] as string[], // プロフィール画像（最大3枚）
+    categoryType: 'venue' as 'venue' | 'photographer' | 'dress' | 'planner' | 'other',
+    maxGuests: '',
+    serviceTags: [] as string[],
+    serviceTagInput: '',
+    plans: [] as Array<{ name: string; price: string; description: string }>,
   })
   const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [uploadingProfileImage, setUploadingProfileImage] = useState(false)
+  const [uploadingProfileImages, setUploadingProfileImages] = useState<boolean[]>([])
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
 
@@ -91,7 +105,17 @@ export default function VendorProfilePage() {
         styleTagInput: '',
         services: v.profile?.services || '',
         constraints: v.profile?.constraints || '',
-        profileImageUrl: v.profile?.imageUrl || '',
+        profileImages: v.profile?.profileImages || (v.profile?.imageUrl ? [v.profile.imageUrl] : []),
+        categoryType: v.profile?.categoryType || 'venue',
+        maxGuests: v.profile?.maxGuests?.toString() || '',
+        serviceTags: v.profile?.serviceTags || [],
+        serviceTagInput: '',
+        plans:
+          v.profile?.plans?.map((p) => ({
+            name: p.name,
+            price: p.price.toString(),
+            description: p.description || '',
+          })) || [],
       })
     } catch (error) {
       console.error('Failed to load profile:', error)
@@ -101,7 +125,7 @@ export default function VendorProfilePage() {
     }
   }
 
-  const handleImageUpload = async (file: File, type: 'logo' | 'profile') => {
+  const handleImageUpload = async (file: File, type: 'logo' | 'profile', index?: number) => {
     const formDataToSend = new FormData()
     formDataToSend.append('file', file)
     formDataToSend.append('type', type)
@@ -109,7 +133,13 @@ export default function VendorProfilePage() {
     if (type === 'logo') {
       setUploadingLogo(true)
     } else {
-      setUploadingProfileImage(true)
+      const newUploading = [...uploadingProfileImages]
+      if (index !== undefined) {
+        newUploading[index] = true
+      } else {
+        newUploading.push(true)
+      }
+      setUploadingProfileImages(newUploading)
     }
 
     try {
@@ -128,7 +158,17 @@ export default function VendorProfilePage() {
       if (type === 'logo') {
         setFormData({ ...formData, logoUrl: data.imageUrl })
       } else {
-        setFormData({ ...formData, profileImageUrl: data.imageUrl })
+        const newImages = [...formData.profileImages]
+        if (index !== undefined && index < newImages.length) {
+          newImages[index] = data.imageUrl
+        } else {
+          if (newImages.length < 3) {
+            newImages.push(data.imageUrl)
+          } else {
+            throw new Error('プロフィール画像は最大3枚までです')
+          }
+        }
+        setFormData({ ...formData, profileImages: newImages })
       }
 
       return data.imageUrl
@@ -140,9 +180,20 @@ export default function VendorProfilePage() {
       if (type === 'logo') {
         setUploadingLogo(false)
       } else {
-        setUploadingProfileImage(false)
+        const newUploading = [...uploadingProfileImages]
+        if (index !== undefined && index < newUploading.length) {
+          newUploading[index] = false
+        } else {
+          newUploading.pop()
+        }
+        setUploadingProfileImages(newUploading)
       }
     }
+  }
+
+  const removeProfileImage = (index: number) => {
+    const newImages = formData.profileImages.filter((_, i) => i !== index)
+    setFormData({ ...formData, profileImages: newImages })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,12 +210,20 @@ export default function VendorProfilePage() {
           logoUrl: formData.logoUrl || null,
           categoryIds: formData.categoryIds,
           areas: formData.areas,
-          priceMin: formData.priceMin ? parseInt(formData.priceMin) : null,
-          priceMax: formData.priceMax ? parseInt(formData.priceMax) : null,
           styleTags: formData.styleTags,
           services: formData.services || null,
           constraints: formData.constraints || null,
-          imageUrl: formData.profileImageUrl || null,
+          profileImages: formData.profileImages,
+          categoryType: formData.categoryType,
+          maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : null,
+          serviceTags: formData.styleTags, // シンプルに同じタグをサービス特徴としても利用
+          plans: formData.plans
+            .filter((p) => p.name.trim() && p.price.trim())
+            .map((p) => ({
+              name: p.name.trim(),
+              price: parseInt(p.price, 10),
+              description: p.description.trim() || null,
+            })),
         }),
       })
 
@@ -187,7 +246,7 @@ export default function VendorProfilePage() {
       }
 
       alert('プロフィールを更新しました')
-      await loadProfile()
+      router.push('/vendor/dashboard')
     } catch (error: any) {
       console.error('Failed to update profile:', error)
       alert(error.message || '更新に失敗しました')
@@ -263,6 +322,33 @@ export default function VendorProfilePage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">基本情報</h2>
             <div className="space-y-4">
+              {/* 業種カテゴリ */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  業種カテゴリ <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.categoryType}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      categoryType: e.target.value as
+                        | 'venue'
+                        | 'photographer'
+                        | 'dress'
+                        | 'planner'
+                        | 'other',
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="venue">会場（Wedding Venue）</option>
+                  <option value="photographer">カメラマン（Photographer）</option>
+                  <option value="dress">ドレス・ブライダルショップ</option>
+                  <option value="planner">プランナー / コーディネーター</option>
+                  <option value="other">その他</option>
+                </select>
+              </div>
               {/* ロゴ画像 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -300,40 +386,81 @@ export default function VendorProfilePage() {
                 </div>
               </div>
 
-              {/* プロフィール画像 */}
+              {/* プロフィール画像（最大3枚） */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  プロフィール画像
+                  プロフィール画像（最大3枚）
+                  <span className="text-gray-500 text-xs ml-2">
+                    事業者の魅力が伝わる画像を選んでください
+                  </span>
                 </label>
-                <div className="flex items-center gap-4">
-                  {formData.profileImageUrl && (
-                    <img
-                      src={formData.profileImageUrl}
-                      alt="プロフィール画像"
-                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          try {
-                            await handleImageUpload(file, 'profile')
-                          } catch (error) {
-                            // エラーは既にalertで表示済み
-                          }
-                        }
-                      }}
-                      disabled={uploadingProfileImage}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 disabled:opacity-50"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      JPEG、PNG、WebP形式、5MB以下
-                    </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    {formData.profileImages.map((imageUrl, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={imageUrl}
+                          alt={`プロフィール画像 ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeProfileImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          aria-label="画像を削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {formData.profileImages.length < 3 && (
+                      <div className="relative">
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-pink-400 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg
+                              className="w-8 h-8 mb-2 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
+                            </svg>
+                            <p className="text-xs text-gray-500">画像を追加</p>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                try {
+                                  await handleImageUpload(file, 'profile')
+                                } catch (error) {
+                                  // エラーは既にalertで表示済み
+                                }
+                              }
+                              e.target.value = ''
+                            }}
+                            disabled={uploadingProfileImages.some((u) => u)}
+                          />
+                        </label>
+                        {uploadingProfileImages[formData.profileImages.length] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 rounded-lg">
+                            <div className="text-sm text-gray-600">アップロード中...</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
+                  <p className="text-xs text-gray-500">
+                    JPEG、PNG、WebP形式、5MB以下。事業者の魅力が伝わる画像を選んでください。
+                  </p>
                 </div>
               </div>
 
@@ -435,40 +562,118 @@ export default function VendorProfilePage() {
             </div>
           </div>
 
-          {/* 価格帯 */}
+          {/* 料金プラン */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">価格帯</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  最低価格（円）
-                </label>
-                <input
-                  type="number"
-                  value={formData.priceMin}
-                  onChange={(e) => setFormData({ ...formData, priceMin: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="例: 50000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  最高価格（円）
-                </label>
-                <input
-                  type="number"
-                  value={formData.priceMax}
-                  onChange={(e) => setFormData({ ...formData, priceMax: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="例: 200000"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">料金プラン</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              いくつかの料金プランと内容を登録してください。最安値のプラン料金が「¥◯◯◯◯〜」として表示されます。
+            </p>
+            <div className="space-y-4">
+              {formData.plans.map((plan, index) => (
+                <div key={index} className="border border-gray-200 rounded-md p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      プラン {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          plans: formData.plans.filter((_, i) => i !== index),
+                        })
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        プラン名
+                      </label>
+                      <input
+                        type="text"
+                        value={plan.name}
+                        onChange={(e) => {
+                          const newPlans = [...formData.plans]
+                          newPlans[index] = { ...newPlans[index], name: e.target.value }
+                          setFormData({ ...formData, plans: newPlans })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        placeholder="例: フルプランニング / 3時間撮影プラン など"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        料金（円）
+                      </label>
+                      <input
+                        type="number"
+                        value={plan.price}
+                        onChange={(e) => {
+                          const newPlans = [...formData.plans]
+                          newPlans[index] = { ...newPlans[index], price: e.target.value }
+                          setFormData({ ...formData, plans: newPlans })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        placeholder="例: 50000"
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      説明
+                    </label>
+                    <textarea
+                      value={plan.description}
+                      onChange={(e) => {
+                        const newPlans = [...formData.plans]
+                        newPlans[index] = { ...newPlans[index], description: e.target.value }
+                        setFormData({ ...formData, plans: newPlans })
+                      }}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="例: 挙式＋披露宴のフルサポート、衣装・メイク込み など"
+                    />
+                  </div>
+                </div>
+              ))}
+              {formData.plans.length < 3 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      plans: [
+                        ...formData.plans,
+                        { name: '', price: '', description: '' },
+                      ],
+                    })
+                  }
+                  className="px-4 py-2 text-sm bg-pink-50 text-pink-700 border border-pink-200 rounded-md hover:bg-pink-100"
+                >
+                  + プランを追加
+                </button>
+              )}
             </div>
           </div>
 
           {/* スタイルタグ */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">スタイルタグ</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {formData.categoryType === 'venue'
+                ? '設備・特徴タグ'
+                : formData.categoryType === 'photographer'
+                ? 'サービス特徴タグ'
+                : formData.categoryType === 'dress'
+                ? 'ショップの特徴タグ'
+                : formData.categoryType === 'planner'
+                ? '提供範囲・特徴タグ'
+                : '特徴タグ'}
+            </h2>
             <div className="flex gap-2 mb-3">
               <input
                 type="text"

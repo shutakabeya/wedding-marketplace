@@ -12,6 +12,8 @@ interface Vendor {
     priceMin: number | null
     priceMax: number | null
     areas: string[]
+    profileImages: string[]
+    imageUrl: string | null
   } | null
   gallery: Array<{ imageUrl: string }>
 }
@@ -102,48 +104,110 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
             className="flex gap-4 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory hide-scrollbar"
           >
             {vendors.map((vendor) => (
-              <Link
-                key={vendor.id}
-                href={`/vendors/${vendor.id}`}
-                className="min-w-[260px] max-w-[260px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
-              >
-                {vendor.gallery.length > 0 && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={vendor.gallery[0].imageUrl}
-                    alt={vendor.name}
-                    className="w-full h-40 object-cover"
-                  />
-                )}
-                <div className="p-4">
-                  <h4 className="text-base font-semibold mb-1 text-gray-900 line-clamp-1">{vendor.name}</h4>
-                  <div className="text-xs text-gray-500 mb-1">
-                    {vendor.categories.map((c) => c.category.name).join(', ')}
-                  </div>
-                  {vendor.profile && (
-                    <div className="text-sm font-medium text-pink-600 mb-2">
-                      {vendor.profile.priceMin && (
-                        <>
-                          ¥{vendor.profile.priceMin.toLocaleString()}〜
-                        </>
-                      )}
-                      {vendor.profile.priceMax && (
-                        <>
-                          ¥{vendor.profile.priceMax.toLocaleString()}
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {vendor.bio && (
-                    <p className="text-xs text-gray-600 line-clamp-2">{vendor.bio}</p>
-                  )}
-                </div>
-              </Link>
+              <VendorCard key={vendor.id} vendor={vendor} />
             ))}
           </div>
         </div>
       )}
     </section>
+  )
+}
+
+interface VendorCardProps {
+  vendor: Vendor
+}
+
+function VendorCard({ vendor }: VendorCardProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  const images: string[] = [
+    ...(vendor.profile?.profileImages ?? []),
+    ...(vendor.profile?.imageUrl ? [vendor.profile.imageUrl] : []),
+    ...vendor.gallery.map((g) => g.imageUrl),
+  ]
+
+  const hasImages = images.length > 0
+  const currentImage = hasImages ? images[Math.min(currentImageIndex, images.length - 1)] : null
+
+  const handleImageNav = (direction: 'prev' | 'next', e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!hasImages) return
+    setCurrentImageIndex((prev) => {
+      if (direction === 'prev') {
+        return prev === 0 ? images.length - 1 : prev - 1
+      }
+      return prev === images.length - 1 ? 0 : prev + 1
+    })
+  }
+
+  return (
+    <Link
+      href={`/vendors/${vendor.id}`}
+      className="min-w-[260px] max-w-[260px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+    >
+      {currentImage && (
+        <div className="relative w-full h-40 bg-gray-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={currentImage}
+            alt={vendor.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.style.display = 'none'
+            }}
+          />
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => handleImageNav('prev', e)}
+                className="absolute left-1 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-7 h-7 flex items-center justify-center text-xs text-gray-700 shadow"
+                aria-label="前の画像"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleImageNav('next', e)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full w-7 h-7 flex items中心 justify-center text-xs text-gray-700 shadow"
+                aria-label="次の画像"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1">
+                {images.slice(0, 5).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      idx === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      <div className="p-4">
+        <h4 className="text-base font-semibold mb-1 text-gray-900 line-clamp-1">{vendor.name}</h4>
+        {/* カテゴリ名はトップでは不要（カテゴリごとに並んでいるため） */}
+        {vendor.profile && (
+          <div className="text-sm font-medium text-pink-600 mb-2">
+            {vendor.profile.priceMin && (
+              <>¥{vendor.profile.priceMin.toLocaleString()}〜</>
+            )}
+            {vendor.profile.priceMax && (
+              <>¥{vendor.profile.priceMax.toLocaleString()}</>
+            )}
+          </div>
+        )}
+        {vendor.bio && (
+          <p className="text-xs text-gray-600 line-clamp-2">{vendor.bio}</p>
+        )}
+      </div>
+    </Link>
   )
 }
 

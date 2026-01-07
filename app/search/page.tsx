@@ -13,9 +13,13 @@ interface Vendor {
   categories: Array<{ category: { name: string } }>
   profile: {
     imageUrl: string | null
+    profileImages: string[]
     priceMin: number | null
     priceMax: number | null
     areas: string[]
+    styleTags: string[]
+    services: string | null
+    constraints: string | null
   } | null
   gallery: Array<{ imageUrl: string }>
 }
@@ -139,64 +143,110 @@ export default function SearchPage() {
         {loading ? (
           <div className="text-center py-12 text-gray-600">読み込み中...</div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vendors.map((vendor) => (
-              <Link
-                key={vendor.id}
-                href={`/vendors/${vendor.id}`}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
-              >
-                {/* プロフィール画像またはギャラリー画像を表示 */}
-                {(vendor.profile?.imageUrl || vendor.gallery.length > 0) && (
-                  <div className="relative w-full h-48 bg-gray-200">
-                    <img
-                      src={vendor.profile?.imageUrl || vendor.gallery[0].imageUrl}
-                      alt={vendor.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // 画像読み込みエラー時はプレースホルダーを表示
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    {vendor.logoUrl && (
-                      <img
-                        src={vendor.logoUrl}
-                        alt={`${vendor.name}ロゴ`}
-                        className="w-12 h-12 object-cover rounded-full border border-gray-300"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                        }}
-                      />
+          <div className="space-y-4">
+            {vendors.map((vendor) => {
+              const displayImage =
+                vendor.profile?.profileImages?.[0] ||
+                vendor.profile?.imageUrl ||
+                vendor.gallery[0]?.imageUrl ||
+                null
+
+              return (
+                <Link
+                  key={vendor.id}
+                  href={`/vendors/${vendor.id}`}
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+                >
+                  <div className="flex flex-col md:flex-row">
+                    {displayImage && (
+                      <div className="relative w-full md:w-64 h-48 md:h-40 bg-gray-200 flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={displayImage}
+                          alt={vendor.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                          }}
+                        />
+                      </div>
                     )}
-                    <h3 className="text-lg font-semibold">{vendor.name}</h3>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-2">
-                    {vendor.categories.map((c) => c.category.name).join(', ')}
-                  </div>
-                  {vendor.profile && (
-                    <div className="text-sm font-medium text-pink-600">
-                      {vendor.profile.priceMin && (
-                        <>¥{vendor.profile.priceMin.toLocaleString()}〜</>
+
+                    <div className="flex-1 p-4 flex flex-col gap-2">
+                      <div className="flex items-start gap-3">
+                        {vendor.logoUrl && (
+                          <img
+                            src={vendor.logoUrl}
+                            alt={`${vendor.name}ロゴ`}
+                            className="w-10 h-10 object-cover rounded-full border border-gray-300 flex-shrink-0"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="text-base md:text-lg font-semibold text-gray-900">
+                            {vendor.name}
+                          </h3>
+                          <div className="text-xs md:text-sm text-gray-600">
+                            {vendor.categories.map((c) => c.category.name).join(', ')}
+                          </div>
+                        </div>
+                      </div>
+
+                      {vendor.profile && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm text-gray-700">
+                          {vendor.profile.priceMin && (
+                            <span className="font-medium text-pink-600">
+                              ¥{vendor.profile.priceMin.toLocaleString()}〜
+                            </span>
+                          )}
+                          {vendor.profile.areas && vendor.profile.areas.length > 0 && (
+                            <span className="text-gray-500">
+                              エリア: {vendor.profile.areas.join(', ')}
+                            </span>
+                          )}
+                        </div>
                       )}
-                      {vendor.profile.priceMax && (
-                        <>¥{vendor.profile.priceMax.toLocaleString()}</>
+
+                      {/* テイストタグ */}
+                      {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 text-[11px] md:text-xs text-gray-700 mt-1">
+                          {vendor.profile.styleTags.slice(0, 5).map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-pink-50 text-pink-700 rounded-full border border-pink-100"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {vendor.profile.styleTags.length > 5 && (
+                            <span className="text-gray-400">
+                              +{vendor.profile.styleTags.length - 5}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 提供内容（抜粋） */}
+                      {vendor.profile?.services && (
+                        <p className="text-[11px] md:text-xs text-gray-600 line-clamp-2">
+                          {vendor.profile.services}
+                        </p>
+                      )}
+
+                      {vendor.bio && (
+                        <p className="text-xs md:text-sm text-gray-600 line-clamp-3">
+                          {vendor.bio}
+                        </p>
                       )}
                     </div>
-                  )}
-                  {vendor.bio && (
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">
-                      {vendor.bio}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
 

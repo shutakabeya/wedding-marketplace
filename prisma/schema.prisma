@@ -92,6 +92,11 @@ model VendorProfile {
   name          String?  // プロフィール名（例: "東京エリア向け"）
   isDefault     Boolean  @default(false) @map("is_default") // デフォルトプロフィール
   imageUrl      String?  @map("image_url") // プロフィール画像URL
+  profileImages String[] @map("profile_images") // プロフィール画像URL配列（最大3枚）
+  categoryType  String   @default("venue") @map("category_type") // 業種カテゴリ: venue/photographer/dress/planner/other
+  maxGuests     Int?     @map("max_guests") // 最大ゲスト数（会場向け）
+  serviceTags   String[] @map("service_tags") // サービス特徴タグ（カテゴリごとに意味づけ）
+  plans         Json?    @map("plans") // 料金プラン配列（name, price, description）
   areas         String[] // 対応エリア配列
   priceMin      Int?     @map("price_min")
   priceMax      Int?     @map("price_max")

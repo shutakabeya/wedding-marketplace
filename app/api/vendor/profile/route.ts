@@ -60,12 +60,28 @@ const updateProfileSchema = z.object({
   logoUrl: z.string().optional().nullable(),
   categoryIds: z.array(z.string().uuid()).optional(),
   areas: z.array(z.string()).optional(),
+  // 料金はプランから自動算出するが、後方互換性のため残す
   priceMin: z.number().optional().nullable(),
   priceMax: z.number().optional().nullable(),
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
-  imageUrl: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(), // 後方互換性のため残す（サムネイル用）
+  profileImages: z.array(z.string()).optional(), // プロフィール画像（最大3枚）
+  categoryType: z
+    .enum(['venue', 'photographer', 'dress', 'planner', 'other'])
+    .optional(),
+  maxGuests: z.number().optional().nullable(),
+  serviceTags: z.array(z.string()).optional(),
+  plans: z
+    .array(
+      z.object({
+        name: z.string(),
+        price: z.number(), // 円
+        description: z.string().optional().nullable(),
+      })
+    )
+    .optional(),
 })
 
 export async function PATCH(request: NextRequest) {
@@ -80,6 +96,12 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
     const data = updateProfileSchema.parse(body)
+
+    // 料金プランから最安値を算出（存在する場合）
+    const computedPriceMin =
+      data.plans && data.plans.length > 0
+        ? Math.min(...data.plans.map((p) => p.price))
+        : undefined
 
     // ベンダー基本情報更新
     if (data.name || data.bio !== undefined || data.logoUrl !== undefined) {
@@ -123,9 +145,14 @@ export async function PATCH(request: NextRequest) {
           vendorId: session.id,
           isDefault: true,
           name: 'デフォルトプロフィール',
+          categoryType: data.categoryType || 'venue',
           imageUrl: data.imageUrl,
+          profileImages: data.profileImages || [],
           areas: data.areas || [],
-          priceMin: data.priceMin,
+          maxGuests: data.maxGuests ?? null,
+          serviceTags: data.serviceTags || [],
+          plans: data.plans || [],
+          priceMin: computedPriceMin ?? data.priceMin,
           priceMax: data.priceMax,
           styleTags: data.styleTags || [],
           services: data.services,
@@ -136,9 +163,15 @@ export async function PATCH(request: NextRequest) {
       // 既存のデフォルトプロフィールを更新
       // undefinedの値を除外して、実際に更新する値のみを送信
       const updateData: any = {}
+      if (data.categoryType !== undefined) updateData.categoryType = data.categoryType
       if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl
+      if (data.profileImages !== undefined) updateData.profileImages = data.profileImages
       if (data.areas !== undefined) updateData.areas = data.areas
-      if (data.priceMin !== undefined) updateData.priceMin = data.priceMin
+      if (data.maxGuests !== undefined) updateData.maxGuests = data.maxGuests
+      if (data.serviceTags !== undefined) updateData.serviceTags = data.serviceTags
+      if (data.plans !== undefined) updateData.plans = data.plans
+      if (computedPriceMin !== undefined) updateData.priceMin = computedPriceMin
+      else if (data.priceMin !== undefined) updateData.priceMin = data.priceMin
       if (data.priceMax !== undefined) updateData.priceMax = data.priceMax
       if (data.styleTags !== undefined) updateData.styleTags = data.styleTags
       if (data.services !== undefined) updateData.services = data.services
@@ -182,7 +215,6 @@ export async function PATCH(request: NextRequest) {
       )
     }
     console.error('Vendor profile PATCH error:', error)
-    // より詳細なエラーメッセージを返す
     const errorMessage = error instanceof Error ? error.message : '更新に失敗しました'
     return NextResponse.json(
       { error: errorMessage },
