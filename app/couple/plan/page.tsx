@@ -8,7 +8,7 @@ import { Header } from '@/components/Header'
 interface PlanBoardSlot {
   id: string
   category: { id: string; name: string }
-  state: 'unselected' | 'candidate' | 'selected'
+  state: 'unselected' | 'candidate' | 'selected' | 'skipped'
   selectedVendor: {
     id: string
     name: string
@@ -106,6 +106,8 @@ export default function PlanBoardPage() {
         return 'bg-green-50 border-green-500'
       case 'candidate':
         return 'bg-yellow-50 border-yellow-500'
+      case 'skipped':
+        return 'bg-gray-100 border-gray-400'
       default:
         return 'bg-gray-50 border-gray-300'
     }
@@ -117,6 +119,8 @@ export default function PlanBoardPage() {
         return '決定'
       case 'candidate':
         return '候補あり'
+      case 'skipped':
+        return '注文しない（決定）'
       default:
         return '未選択'
     }
@@ -141,6 +145,7 @@ export default function PlanBoardPage() {
   const selectedSlots = planBoard.slots.filter((s) => s.state === 'selected')
   const candidateSlots = planBoard.slots.filter((s) => s.state === 'candidate')
   const unselectedSlots = planBoard.slots.filter((s) => s.state === 'unselected')
+  const skippedSlots = planBoard.slots.filter((s) => s.state === 'skipped')
 
   // 次のアクションを提案
   const getNextActions = () => {
@@ -171,7 +176,7 @@ export default function PlanBoardPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-6 tracking-tight">結婚式プランボード</h1>
 
         {/* サマリーカード */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="grid md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-sm text-gray-600 mb-1">決定済み</div>
             <div className="text-3xl font-bold text-green-600">{selectedSlots.length}</div>
@@ -185,6 +190,11 @@ export default function PlanBoardPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-sm text-gray-600 mb-1">未選択</div>
             <div className="text-3xl font-bold text-gray-600">{unselectedSlots.length}</div>
+            <div className="text-xs text-gray-500 mt-1">カテゴリ</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-sm text-gray-600 mb-1">注文しない</div>
+            <div className="text-3xl font-bold text-gray-500">{skippedSlots.length}</div>
             <div className="text-xs text-gray-500 mt-1">カテゴリ</div>
           </div>
         </div>
@@ -323,12 +333,16 @@ export default function PlanBoardPage() {
                     状態: {getStateLabel(slot.state)}
                   </span>
                 </div>
-                <Link
-                  href={`/search?category=${encodeURIComponent(slot.category.name)}`}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-md text-sm hover:bg-pink-700 transition-colors"
-                >
-                  ベンダーを検索
-                </Link>
+                <div className="flex gap-2">
+                  {slot.state !== 'skipped' && (
+                    <Link
+                      href={`/search?category=${encodeURIComponent(slot.category.name)}`}
+                      className="px-4 py-2 bg-pink-600 text-white rounded-md text-sm hover:bg-pink-700 transition-colors"
+                    >
+                      ベンダーを検索
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {slot.selectedVendor && (
@@ -404,6 +418,49 @@ export default function PlanBoardPage() {
                 </div>
               )}
 
+              {/* アクションボタン */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {slot.state !== 'skipped' && slot.state !== 'selected' && (
+                  <button
+                    onClick={() =>
+                      updateSlot(slot.id, {
+                        state: 'skipped',
+                        selectedVendorId: null,
+                      })
+                    }
+                    className="px-4 py-2 bg-gray-600 text-white rounded-md text-sm hover:bg-gray-700 transition-colors font-medium"
+                  >
+                    注文しない（決定）
+                  </button>
+                )}
+                {slot.state === 'skipped' && (
+                  <button
+                    onClick={() =>
+                      updateSlot(slot.id, {
+                        state: 'unselected',
+                        selectedVendorId: null,
+                      })
+                    }
+                    className="px-4 py-2 bg-pink-600 text-white rounded-md text-sm hover:bg-pink-700 transition-colors"
+                  >
+                    決定を解除
+                  </button>
+                )}
+                {slot.state === 'selected' && slot.selectedVendor && (
+                  <button
+                    onClick={() =>
+                      updateSlot(slot.id, {
+                        state: 'unselected',
+                        selectedVendorId: null,
+                      })
+                    }
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"
+                  >
+                    決定を解除
+                  </button>
+                )}
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -429,7 +486,7 @@ export default function PlanBoardPage() {
                     value={slot.note || ''}
                     onChange={(e) => updateSlot(slot.id, { note: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-500 focus:outline-none"
-                    rows={2}
+                    rows={3}
                     placeholder="メモを入力..."
                   />
                 </div>

@@ -204,7 +204,7 @@ model PlanBoardSlot {
   id              String   @id @default(uuid())
   planBoardId     String   @map("plan_board_id")
   categoryId      String   @map("category_id")
-  state           String   @default("unselected") // unselected/candidate/selected
+  state           String   @default("unselected") // unselected/candidate/selected/skipped
   selectedVendorId String?  @map("selected_vendor_id")
   note            String?  @db.Text
   estimatedCost   Int?     @map("estimated_cost")

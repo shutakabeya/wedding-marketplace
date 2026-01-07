@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { z } from 'zod'
 
 const updateSlotSchema = z.object({
-  state: z.enum(['unselected', 'candidate', 'selected']).optional(),
+  state: z.enum(['unselected', 'candidate', 'selected', 'skipped']).optional(),
   selectedVendorId: z.string().uuid().optional().nullable(),
   estimatedCost: z.number().optional().nullable(),
   note: z.string().optional().nullable(),
