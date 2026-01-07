@@ -6,12 +6,25 @@ import { z } from 'zod'
 const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
   imageUrl: z.string().optional().nullable(),
+  profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
+  categoryType: z.enum(['venue', 'photographer', 'dress', 'planner', 'other']).optional(),
+  maxGuests: z.number().optional().nullable(),
+  serviceTags: z.array(z.string()).optional(),
   priceMin: z.number().optional().nullable(),
   priceMax: z.number().optional().nullable(),
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
+  plans: z
+    .array(
+      z.object({
+        name: z.string(),
+        price: z.number(),
+        description: z.string().optional().nullable(),
+      })
+    )
+    .optional(),
   isDefault: z.boolean().optional(),
 })
 
@@ -88,6 +101,12 @@ export async function PATCH(
       )
     }
 
+    // 料金プランから最安値を算出（存在する場合）
+    const computedPriceMin =
+      data.plans && data.plans.length > 0
+        ? Math.min(...data.plans.map((p) => p.price))
+        : undefined
+
     // デフォルトプロフィールを設定する場合、既存のデフォルトを解除
     if (data.isDefault === true) {
       await prisma.vendorProfile.updateMany({
@@ -102,19 +121,27 @@ export async function PATCH(
       })
     }
 
+    // undefinedの値を除外して、実際に更新する値のみを送信
+    const updateData: any = {}
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl
+    if (data.profileImages !== undefined) updateData.profileImages = data.profileImages
+    if (data.categoryType !== undefined) updateData.categoryType = data.categoryType
+    if (data.maxGuests !== undefined) updateData.maxGuests = data.maxGuests
+    if (data.serviceTags !== undefined) updateData.serviceTags = data.serviceTags
+    if (data.areas !== undefined) updateData.areas = data.areas
+    if (data.plans !== undefined) updateData.plans = data.plans
+    if (computedPriceMin !== undefined) updateData.priceMin = computedPriceMin
+    else if (data.priceMin !== undefined) updateData.priceMin = data.priceMin
+    if (data.priceMax !== undefined) updateData.priceMax = data.priceMax
+    if (data.styleTags !== undefined) updateData.styleTags = data.styleTags
+    if (data.services !== undefined) updateData.services = data.services
+    if (data.constraints !== undefined) updateData.constraints = data.constraints
+    if (data.isDefault !== undefined) updateData.isDefault = data.isDefault
+
     const profile = await prisma.vendorProfile.update({
       where: { id },
-      data: {
-        name: data.name,
-        imageUrl: data.imageUrl,
-        areas: data.areas,
-        priceMin: data.priceMin,
-        priceMax: data.priceMax,
-        styleTags: data.styleTags,
-        services: data.services,
-        constraints: data.constraints,
-        isDefault: data.isDefault,
-      },
+      data: updateData,
     })
 
     return NextResponse.json({ profile })
@@ -164,12 +191,21 @@ export async function DELETE(
       )
     }
 
-    // デフォルトプロフィールは削除できない
+    // デフォルトプロフィールを削除する場合、他のプロフィールがあれば最初のものをデフォルトに設定
     if (profile.isDefault) {
-      return NextResponse.json(
-        { error: 'デフォルトプロフィールは削除できません' },
-        { status: 400 }
-      )
+      const otherProfiles = await prisma.vendorProfile.findMany({
+        where: {
+          vendorId: session.id,
+          id: { not: id },
+        },
+        take: 1,
+      })
+      if (otherProfiles.length > 0) {
+        await prisma.vendorProfile.update({
+          where: { id: otherProfiles[0].id },
+          data: { isDefault: true },
+        })
+      }
     }
 
     await prisma.vendorProfile.delete({

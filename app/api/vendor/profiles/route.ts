@@ -6,12 +6,26 @@ import { z } from 'zod'
 const createProfileSchema = z.object({
   name: z.string().min(1),
   imageUrl: z.string().optional().nullable(),
+  profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
+  categoryType: z.enum(['venue', 'photographer', 'dress', 'planner', 'other']).optional(),
+  maxGuests: z.number().optional().nullable(),
+  serviceTags: z.array(z.string()).optional(),
   priceMin: z.number().optional().nullable(),
   priceMax: z.number().optional().nullable(),
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
+  plans: z
+    .array(
+      z.object({
+        name: z.string(),
+        price: z.number(),
+        description: z.string().optional().nullable(),
+      })
+    )
+    .optional(),
+  isDefault: z.boolean().optional(),
 })
 
 const updateProfileSchema = z.object({
@@ -69,8 +83,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = createProfileSchema.parse(body)
 
+    // 料金プランから最安値を算出（存在する場合）
+    const computedPriceMin =
+      data.plans && data.plans.length > 0
+        ? Math.min(...data.plans.map((p) => p.price))
+        : undefined
+
     // デフォルトプロフィールを設定する場合、既存のデフォルトを解除
-    if (data.name === 'デフォルトプロフィール' || body.isDefault) {
+    if (data.isDefault === true) {
       await prisma.vendorProfile.updateMany({
         where: {
           vendorId: session.id,
@@ -87,13 +107,18 @@ export async function POST(request: NextRequest) {
         vendorId: session.id,
         name: data.name,
         imageUrl: data.imageUrl,
-        isDefault: body.isDefault || false,
+        profileImages: data.profileImages || [],
+        categoryType: data.categoryType || 'venue',
+        maxGuests: data.maxGuests ?? null,
+        serviceTags: data.serviceTags || [],
         areas: data.areas || [],
-        priceMin: data.priceMin,
+        plans: data.plans || [],
+        priceMin: computedPriceMin ?? data.priceMin,
         priceMax: data.priceMax,
         styleTags: data.styleTags || [],
         services: data.services,
         constraints: data.constraints,
+        isDefault: data.isDefault || false,
       },
     })
 

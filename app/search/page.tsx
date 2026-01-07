@@ -173,74 +173,80 @@ export default function SearchPage() {
                       </div>
                     )}
 
-                    <div className="flex-1 p-4 flex flex-col gap-2">
-                      <div className="flex items-start gap-3">
-                        {vendor.logoUrl && (
-                          <img
-                            src={vendor.logoUrl}
-                            alt={`${vendor.name}ロゴ`}
-                            className="w-10 h-10 object-cover rounded-full border border-gray-300 flex-shrink-0"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                            }}
-                          />
-                        )}
-                        <div className="flex-1">
-                          <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                            {vendor.name}
-                          </h3>
-                          <div className="text-xs md:text-sm text-gray-600">
-                            {vendor.categories.map((c) => c.category.name).join(', ')}
+                    <div className="flex-1 p-4 flex flex-col md:flex-row gap-4">
+                      {/* 左側：基本情報 */}
+                      <div className="flex-1 flex flex-col gap-2 min-w-0">
+                        <div className="flex items-start gap-3">
+                          {vendor.logoUrl && (
+                            <img
+                              src={vendor.logoUrl}
+                              alt={`${vendor.name}ロゴ`}
+                              className="w-10 h-10 object-cover rounded-full border border-gray-300 flex-shrink-0"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                              }}
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base md:text-lg font-semibold text-gray-900">
+                              {vendor.name}
+                            </h3>
+                            <div className="text-xs md:text-sm text-gray-600">
+                              {vendor.categories.map((c) => c.category.name).join(', ')}
+                            </div>
                           </div>
                         </div>
+
+                        {vendor.profile && (
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm text-gray-700">
+                            {vendor.profile.priceMin && (
+                              <span className="font-medium text-pink-600">
+                                ¥{vendor.profile.priceMin.toLocaleString()}〜
+                              </span>
+                            )}
+                            {vendor.profile.areas && vendor.profile.areas.length > 0 && (
+                              <span className="text-gray-500">
+                                エリア: {vendor.profile.areas.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* テイストタグ */}
+                        {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 text-[11px] md:text-xs text-gray-700 mt-1">
+                            {vendor.profile.styleTags.slice(0, 5).map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-1 bg-pink-50 text-pink-700 rounded-full border border-pink-100"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {vendor.profile.styleTags.length > 5 && (
+                              <span className="text-gray-400">
+                                +{vendor.profile.styleTags.length - 5}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 提供内容（抜粋） */}
+                        {vendor.profile?.services && (
+                          <p className="text-[11px] md:text-xs text-gray-600 line-clamp-2">
+                            {vendor.profile.services}
+                          </p>
+                        )}
                       </div>
 
-                      {vendor.profile && (
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs md:text-sm text-gray-700">
-                          {vendor.profile.priceMin && (
-                            <span className="font-medium text-pink-600">
-                              ¥{vendor.profile.priceMin.toLocaleString()}〜
-                            </span>
-                          )}
-                          {vendor.profile.areas && vendor.profile.areas.length > 0 && (
-                            <span className="text-gray-500">
-                              エリア: {vendor.profile.areas.join(', ')}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* テイストタグ */}
-                      {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 text-[11px] md:text-xs text-gray-700 mt-1">
-                          {vendor.profile.styleTags.slice(0, 5).map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 bg-pink-50 text-pink-700 rounded-full border border-pink-100"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {vendor.profile.styleTags.length > 5 && (
-                            <span className="text-gray-400">
-                              +{vendor.profile.styleTags.length - 5}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 提供内容（抜粋） */}
-                      {vendor.profile?.services && (
-                        <p className="text-[11px] md:text-xs text-gray-600 line-clamp-2">
-                          {vendor.profile.services}
-                        </p>
-                      )}
-
+                      {/* 右側：紹介文（PC版のみ） */}
                       {vendor.bio && (
-                        <p className="text-xs md:text-sm text-gray-600 line-clamp-3">
-                          {vendor.bio}
-                        </p>
+                        <div className="md:w-64 md:flex-shrink-0 md:border-l md:border-gray-200 md:pl-4">
+                          <p className="text-xs md:text-sm text-gray-600 line-clamp-3 md:line-clamp-none">
+                            {vendor.bio}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

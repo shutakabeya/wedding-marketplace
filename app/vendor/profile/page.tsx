@@ -37,8 +37,11 @@ export default function VendorProfilePage() {
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null) // 編集モード時はプロフィールID、新規作成時はnull
+  const [showForm, setShowForm] = useState(false) // フォームを表示するかどうか
   const [formData, setFormData] = useState({
-    name: '',
+    profileName: '', // 出品名（VendorProfile.name）
+    name: '', // ベンダー名（Vendor.name、表示用のみ）
     bio: '',
     logoUrl: '',
     categoryIds: [] as string[],
@@ -92,37 +95,86 @@ export default function VendorProfilePage() {
       const data = await res.json()
       const v = data.vendor
       setVendor(v)
-      setFormData({
-        name: v.name || '',
-        bio: v.bio || '',
-        logoUrl: v.logoUrl || '',
-        categoryIds: v.categories.map((c: any) => c.category.id),
-        areas: v.profile?.areas || [],
-        areaInput: '',
-        priceMin: v.profile?.priceMin?.toString() || '',
-        priceMax: v.profile?.priceMax?.toString() || '',
-        styleTags: v.profile?.styleTags || [],
-        styleTagInput: '',
-        services: v.profile?.services || '',
-        constraints: v.profile?.constraints || '',
-        profileImages: v.profile?.profileImages || (v.profile?.imageUrl ? [v.profile.imageUrl] : []),
-        categoryType: v.profile?.categoryType || 'venue',
-        maxGuests: v.profile?.maxGuests?.toString() || '',
-        serviceTags: v.profile?.serviceTags || [],
-        serviceTagInput: '',
-        plans:
-          v.profile?.plans?.map((p) => ({
-            name: p.name,
-            price: p.price.toString(),
-            description: p.description || '',
-          })) || [],
-      })
+      // フォームは初期状態のまま（新規作成モード）
+      resetForm()
     } catch (error) {
       console.error('Failed to load profile:', error)
       alert('プロフィールの取得に失敗しました')
     } finally {
       setLoading(false)
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      profileName: '',
+      name: vendor?.name || '',
+      bio: vendor?.bio || '',
+      logoUrl: vendor?.logoUrl || '',
+      categoryIds: vendor?.categories.map((c: any) => c.category.id) || [],
+      areas: [],
+      areaInput: '',
+      priceMin: '',
+      priceMax: '',
+      styleTags: [],
+      styleTagInput: '',
+      services: '',
+      constraints: '',
+      profileImages: [],
+      categoryType: 'venue',
+      maxGuests: '',
+      serviceTags: [],
+      serviceTagInput: '',
+      plans: [],
+    })
+    setEditingProfileId(null)
+  }
+
+  const loadProfileForEdit = async (profileId: string) => {
+    try {
+      const res = await fetch(`/api/vendor/profiles/${profileId}`)
+      if (!res.ok) {
+        throw new Error('プロフィールの取得に失敗しました')
+      }
+      const data = await res.json()
+      const profile = data.profile
+      setFormData({
+        profileName: profile.name || '',
+        name: vendor?.name || '',
+        bio: vendor?.bio || '',
+        logoUrl: vendor?.logoUrl || '',
+        categoryIds: vendor?.categories.map((c: any) => c.category.id) || [],
+        areas: profile.areas || [],
+        areaInput: '',
+        priceMin: profile.priceMin?.toString() || '',
+        priceMax: profile.priceMax?.toString() || '',
+        styleTags: profile.styleTags || [],
+        styleTagInput: '',
+        services: profile.services || '',
+        constraints: profile.constraints || '',
+        profileImages: profile.profileImages || (profile.imageUrl ? [profile.imageUrl] : []),
+        categoryType: profile.categoryType || 'venue',
+        maxGuests: profile.maxGuests?.toString() || '',
+        serviceTags: profile.serviceTags || [],
+        serviceTagInput: '',
+        plans:
+          profile.plans?.map((p: any) => ({
+            name: p.name,
+            price: p.price.toString(),
+            description: p.description || '',
+          })) || [],
+      })
+      setEditingProfileId(profileId)
+      setShowForm(true)
+    } catch (error) {
+      console.error('Failed to load profile for edit:', error)
+      alert('プロフィールの取得に失敗しました')
+    }
+  }
+
+  const startNewProfile = () => {
+    resetForm()
+    setShowForm(true)
   }
 
   const handleImageUpload = async (file: File, type: 'logo' | 'profile', index?: number) => {
@@ -201,34 +253,45 @@ export default function VendorProfilePage() {
     setSaving(true)
 
     try {
-      const res = await fetch('/api/vendor/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          bio: formData.bio || null,
-          logoUrl: formData.logoUrl || null,
-          categoryIds: formData.categoryIds,
-          areas: formData.areas,
-          styleTags: formData.styleTags,
-          services: formData.services || null,
-          constraints: formData.constraints || null,
-          profileImages: formData.profileImages,
-          categoryType: formData.categoryType,
-          maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : null,
-          serviceTags: formData.styleTags, // シンプルに同じタグをサービス特徴としても利用
-          plans: formData.plans
-            .filter((p) => p.name.trim() && p.price.trim())
-            .map((p) => ({
-              name: p.name.trim(),
-              price: parseInt(p.price, 10),
-              description: p.description.trim() || null,
-            })),
-        }),
-      })
+      const payload = {
+        name: formData.profileName || '新しい出品',
+        imageUrl: formData.profileImages[0] || null,
+        profileImages: formData.profileImages,
+        areas: formData.areas,
+        categoryType: formData.categoryType,
+        maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : null,
+        serviceTags: formData.serviceTags,
+        styleTags: formData.styleTags,
+        services: formData.services || null,
+        constraints: formData.constraints || null,
+        plans: formData.plans
+          .filter((p) => p.name.trim() && p.price.trim())
+          .map((p) => ({
+            name: p.name.trim(),
+            price: parseInt(p.price, 10),
+            description: p.description.trim() || null,
+          })),
+      }
+
+      let res
+      if (editingProfileId) {
+        // 編集モード: PATCH
+        res = await fetch(`/api/vendor/profiles/${editingProfileId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        // 新規作成モード: POST
+        res = await fetch('/api/vendor/profiles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
 
       if (!res.ok) {
-        let errorMessage = '更新に失敗しました'
+        let errorMessage = editingProfileId ? '更新に失敗しました' : '作成に失敗しました'
         try {
           const data = await res.json()
           errorMessage = data.error || errorMessage
@@ -237,19 +300,21 @@ export default function VendorProfilePage() {
             errorMessage += '\n詳細: ' + JSON.stringify(data.details)
           }
         } catch (parseError) {
-          // JSONパースに失敗した場合、レスポンステキストを取得
           const text = await res.text()
           console.error('Error response:', text)
-          errorMessage = `更新に失敗しました (${res.status}: ${res.statusText})`
+          errorMessage = `${editingProfileId ? '更新' : '作成'}に失敗しました (${res.status}: ${res.statusText})`
         }
         throw new Error(errorMessage)
       }
 
-      alert('プロフィールを更新しました')
-      router.push('/vendor/dashboard')
+      alert(editingProfileId ? '出品を更新しました' : '出品を作成しました')
+      resetForm()
+      setShowForm(false)
+      // 出品一覧を再読み込み（ProfilesManagerコンポーネントに伝える必要があるが、一旦リロードで対応）
+      window.location.reload()
     } catch (error: any) {
-      console.error('Failed to update profile:', error)
-      alert(error.message || '更新に失敗しました')
+      console.error('Failed to save profile:', error)
+      alert(error.message || (editingProfileId ? '更新に失敗しました' : '作成に失敗しました'))
     } finally {
       setSaving(false)
     }
@@ -315,13 +380,44 @@ export default function VendorProfilePage() {
             ← ダッシュボードに戻る
           </Link>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">プロフィール編集</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {editingProfileId ? '出品を編集' : showForm ? '新しい出品を作成' : '出品管理'}
+          </h1>
+          {!showForm && (
+            <button
+              onClick={startNewProfile}
+              className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700"
+            >
+              + 新しい出品を作成
+            </button>
+          )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {showForm && (
+          <form onSubmit={handleSubmit} className="space-y-6 mb-8">
           {/* 基本情報 */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">基本情報</h2>
             <div className="space-y-4">
+              {/* 出品名 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  出品名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.profileName}
+                  onChange={(e) => setFormData({ ...formData, profileName: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="例: 東京エリア向け会場プラン / フルプランニングサービス など"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  この出品を識別するための名前を入力してください
+                </p>
+              </div>
+
               {/* 業種カテゴリ */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -518,9 +614,34 @@ export default function VendorProfilePage() {
             </p>
           </div>
 
-          {/* 対応エリア */}
+          {/* 会場の場合：収容人数 */}
+          {formData.categoryType === 'venue' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">収容人数</h2>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最大収容人数（人）
+                </label>
+                <input
+                  type="number"
+                  value={formData.maxGuests}
+                  onChange={(e) => setFormData({ ...formData, maxGuests: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="例: 100"
+                  min={1}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  この会場で収容できる最大のゲスト数を入力してください
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 対応エリア / 所在地 */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">対応エリア</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              {formData.categoryType === 'venue' ? '所在地' : '対応エリア'}
+            </h2>
             <div className="flex gap-2 mb-3">
               <input
                 type="text"
@@ -533,7 +654,7 @@ export default function VendorProfilePage() {
                   }
                 }}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="例: 東京都"
+                placeholder={formData.categoryType === 'venue' ? '例: 東京都渋谷区' : '例: 東京都'}
               />
               <button
                 type="button"
@@ -745,32 +866,37 @@ export default function VendorProfilePage() {
               disabled={saving}
               className="flex-1 bg-pink-600 text-white py-3 rounded-md hover:bg-pink-700 disabled:opacity-50"
             >
-              {saving ? '保存中...' : '保存'}
+              {saving ? '保存中...' : editingProfileId ? '更新' : '出品を作成'}
             </button>
-            <Link
-              href="/vendor/dashboard"
+            <button
+              type="button"
+              onClick={() => {
+                resetForm()
+                setShowForm(false)
+              }}
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             >
               キャンセル
-            </Link>
+            </button>
           </div>
         </form>
+        )}
 
-        {/* 複数プロフィール管理 */}
+        {/* 出品一覧 */}
         <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">複数プロフィール管理</h2>
+          <h2 className="text-xl font-semibold mb-4">出品一覧</h2>
           <p className="text-sm text-gray-600 mb-4">
-            エリアや価格帯が異なる複数のプロフィールを作成できます。デフォルトプロフィールは検索結果に表示されます。
+            作成した出品を一覧で確認・編集・削除できます。デフォルト出品は検索結果に優先的に表示されます。
           </p>
-          <ProfilesManager />
+          <ProfilesManager onEdit={loadProfileForEdit} />
         </div>
       </div>
     </div>
   )
 }
 
-// 複数プロフィール管理コンポーネント
-function ProfilesManager() {
+// 出品一覧管理コンポーネント
+function ProfilesManager({ onEdit }: { onEdit: (profileId: string) => void }) {
   const router = useRouter()
   const [profiles, setProfiles] = useState<Array<{
     id: string
@@ -779,23 +905,10 @@ function ProfilesManager() {
     areas: string[]
     priceMin: number | null
     priceMax: number | null
+    categoryType: string
     createdAt: string
   }>>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    areas: [] as string[],
-    areaInput: '',
-    priceMin: '',
-    priceMax: '',
-    styleTags: [] as string[],
-    styleTagInput: '',
-    services: '',
-    constraints: '',
-    isDefault: false,
-  })
 
   useEffect(() => {
     loadProfiles()
@@ -821,49 +934,6 @@ function ProfilesManager() {
     }
   }
 
-  const handleCreate = async () => {
-    try {
-      const res = await fetch('/api/vendor/profiles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          areas: formData.areas,
-          priceMin: formData.priceMin ? parseInt(formData.priceMin) : null,
-          priceMax: formData.priceMax ? parseInt(formData.priceMax) : null,
-          styleTags: formData.styleTags,
-          services: formData.services || null,
-          constraints: formData.constraints || null,
-          isDefault: formData.isDefault,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        alert(data.error || '作成に失敗しました')
-        return
-      }
-
-      alert('プロフィールを作成しました')
-      setShowCreateForm(false)
-      setFormData({
-        name: '',
-        areas: [],
-        areaInput: '',
-        priceMin: '',
-        priceMax: '',
-        styleTags: [],
-        styleTagInput: '',
-        services: '',
-        constraints: '',
-        isDefault: false,
-      })
-      await loadProfiles()
-    } catch (error) {
-      console.error('Failed to create profile:', error)
-      alert('作成に失敗しました')
-    }
-  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('このプロフィールを削除しますか？')) return
@@ -906,40 +976,6 @@ function ProfilesManager() {
     }
   }
 
-  const addArea = () => {
-    if (formData.areaInput.trim() && !formData.areas.includes(formData.areaInput.trim())) {
-      setFormData({
-        ...formData,
-        areas: [...formData.areas, formData.areaInput.trim()],
-        areaInput: '',
-      })
-    }
-  }
-
-  const removeArea = (area: string) => {
-    setFormData({
-      ...formData,
-      areas: formData.areas.filter((a) => a !== area),
-    })
-  }
-
-  const addStyleTag = () => {
-    if (formData.styleTagInput.trim() && !formData.styleTags.includes(formData.styleTagInput.trim())) {
-      setFormData({
-        ...formData,
-        styleTags: [...formData.styleTags, formData.styleTagInput.trim()],
-        styleTagInput: '',
-      })
-    }
-  }
-
-  const removeStyleTag = (tag: string) => {
-    setFormData({
-      ...formData,
-      styleTags: formData.styleTags.filter((t) => t !== tag),
-    })
-  }
-
   if (loading) {
     return <div className="text-gray-600">読み込み中...</div>
   }
@@ -968,6 +1004,18 @@ function ProfilesManager() {
                   )}
                 </div>
                 <div className="text-sm text-gray-600 space-y-1">
+                  <div>
+                    カテゴリ:{' '}
+                    {profile.categoryType === 'venue'
+                      ? '会場'
+                      : profile.categoryType === 'photographer'
+                      ? 'カメラマン'
+                      : profile.categoryType === 'dress'
+                      ? 'ドレス'
+                      : profile.categoryType === 'planner'
+                      ? 'プランナー'
+                      : 'その他'}
+                  </div>
                   {profile.areas.length > 0 && (
                     <div>対応エリア: {profile.areas.join(', ')}</div>
                   )}
@@ -980,6 +1028,12 @@ function ProfilesManager() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={() => onEdit(profile.id)}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  編集
+                </button>
                 {!profile.isDefault && (
                   <button
                     onClick={() => handleSetDefault(profile.id)}
@@ -991,7 +1045,6 @@ function ProfilesManager() {
                 <button
                   onClick={() => handleDelete(profile.id)}
                   className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                  disabled={profile.isDefault}
                 >
                   削除
                 </button>
@@ -1001,138 +1054,9 @@ function ProfilesManager() {
         ))}
       </div>
 
-      {/* 新規作成フォーム */}
-      {!showCreateForm ? (
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-pink-500 hover:text-pink-600 transition-colors"
-        >
-          + 新しいプロフィールを作成
-        </button>
-      ) : (
-        <div className="border-2 border-pink-200 rounded-lg p-4 bg-pink-50">
-          <h3 className="font-semibold mb-4">新しいプロフィール</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                プロフィール名 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="例: 東京エリア向け"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                対応エリア
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={formData.areaInput}
-                  onChange={(e) => setFormData({ ...formData, areaInput: e.target.value })}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      addArea()
-                    }
-                  }}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="例: 東京都"
-                />
-                <button
-                  type="button"
-                  onClick={addArea}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700"
-                >
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.areas.map((area) => (
-                  <span
-                    key={area}
-                    className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm flex items-center gap-2"
-                  >
-                    {area}
-                    <button
-                      type="button"
-                      onClick={() => removeArea(area)}
-                      className="text-pink-700 hover:text-pink-900"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  最低価格（円）
-                </label>
-                <input
-                  type="number"
-                  value={formData.priceMin}
-                  onChange={(e) => setFormData({ ...formData, priceMin: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  最高価格（円）
-                </label>
-                <input
-                  type="number"
-                  value={formData.priceMax}
-                  onChange={(e) => setFormData({ ...formData, priceMax: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.isDefault}
-                  onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                />
-                <span className="text-sm text-gray-700">デフォルトプロフィールに設定</span>
-              </label>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCreate}
-                disabled={!formData.name.trim()}
-                className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:opacity-50"
-              >
-                作成
-              </button>
-              <button
-                onClick={() => {
-                  setShowCreateForm(false)
-                  setFormData({
-                    name: '',
-                    areas: [],
-                    areaInput: '',
-                    priceMin: '',
-                    priceMax: '',
-                    styleTags: [],
-                    styleTagInput: '',
-                    services: '',
-                    constraints: '',
-                    isDefault: false,
-                  })
-                }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
+      {profiles.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          まだ出品がありません。「新しい出品を作成」ボタンから出品を作成してください。
         </div>
       )}
     </div>
