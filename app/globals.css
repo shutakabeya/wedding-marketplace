@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --pink-primary: #EC4899;
+  --pink-light: #FCE7F3;
+  --gold-accent: #F59E0B;
+  --cream-accent: #FEF3C7;
 }
 
 @theme inline {
@@ -23,7 +27,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+    'Segoe UI', 'Noto Sans JP', sans-serif;
   line-height: 1.6;
 }
 
@@ -34,4 +38,47 @@ body {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* スケルトンローディング */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    #f0f0f0 0%,
+    #e0e0e0 20%,
+    #f0f0f0 40%,
+    #f0f0f0 100%
+  );
+  background-size: 1000px 100%;
+}
+
+/* フェードインアニメーション */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* スムーズなスクロール */
+html {
+  scroll-behavior: smooth;
 }

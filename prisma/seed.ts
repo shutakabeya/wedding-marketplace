@@ -20,7 +20,7 @@ async function main() {
     { name: 'ヘアメイク', displayOrder: 6 },
     { name: 'デイオブプランナー', displayOrder: 7 },
     { name: 'ケーキ', displayOrder: 8 },
-    { name: 'スタッフ', displayOrder: 9 },
+    { name: '装飾', displayOrder: 9 },
     { name: 'プランナー', displayOrder: 10 },
     { name: 'MC', displayOrder: 11 },
     { name: '映像', displayOrder: 12 },

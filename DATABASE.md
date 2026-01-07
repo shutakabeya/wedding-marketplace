@@ -309,3 +309,4 @@ npx prisma migrate dev --name add_indexes
 - **Supabase移行**: 接続文字列を変更するだけ
 - **データ拡充**: Seedスクリプト、Prisma Studio、管理画面など
 - **追加機能**: Supabaseのリアルタイム、ストレージ、認証機能を活用可能
+

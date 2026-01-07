@@ -38,6 +38,7 @@ export default function VendorDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [planBoardSlots, setPlanBoardSlots] = useState<Array<{ id: string; category: { id: string; name: string } }>>([])
   const [addingToPlanBoard, setAddingToPlanBoard] = useState(false)
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
   useEffect(() => {
     loadVendor()
@@ -169,56 +170,88 @@ export default function VendorDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50">
       <Header />
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* ヘッダーセクション（プロフィール画像とロゴ） */}
-        <div className="mb-6">
+        <div className="mb-8 fade-in">
           {vendor.profile?.imageUrl && (
-            <img
-              src={vendor.profile.imageUrl}
-              alt={vendor.name}
-              className="w-full h-80 object-cover rounded-lg mb-4 shadow-md"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-              }}
-            />
-          )}
-          <div className="flex items-center gap-4">
-            {vendor.logoUrl && (
+            <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl mb-6 group">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={vendor.logoUrl}
-                alt={`${vendor.name}ロゴ`}
-                className="w-24 h-24 object-cover rounded-full border-4 border-pink-200 shadow-md"
+                src={vendor.profile.imageUrl}
+                alt={vendor.name}
+                className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
                 }}
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+          <div className="flex items-center gap-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+            {vendor.logoUrl && (
+              <div className="relative w-28 h-28 flex-shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={vendor.logoUrl}
+                  alt={`${vendor.name}ロゴ`}
+                  className="w-full h-full object-cover rounded-full border-4 border-pink-200 shadow-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                  }}
+                />
+              </div>
             )}
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{vendor.name}</h1>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">{vendor.name}</h1>
+              <div className="flex flex-wrap gap-2">
+                {vendor.categories.map((c) => (
+                  <span key={c.category.name} className="px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 rounded-full text-sm font-medium border border-pink-200">
+                    {c.category.name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-6">
             {/* ギャラリー */}
             {vendor.gallery.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">実績写真</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {vendor.gallery.map((image) => (
-                    <img
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  実績写真
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {vendor.gallery.map((image, index) => (
+                    <div
                       key={image.id}
-                      src={image.imageUrl}
-                      alt={image.caption || vendor.name}
-                      className="w-full h-48 object-cover rounded"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.style.display = 'none'
-                      }}
-                    />
+                      className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group hover:scale-105 transition-transform duration-300 shadow-lg"
+                      onClick={() => setLightboxImage(image.imageUrl)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image.imageUrl}
+                        alt={image.caption || `${vendor.name}の写真 ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -226,50 +259,56 @@ export default function VendorDetailPage() {
 
             {/* 説明 */}
             {vendor.bio && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">プロフィール</h2>
-                <p className="text-gray-700 whitespace-pre-line">{vendor.bio}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">プロフィール</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">{vendor.bio}</p>
               </div>
             )}
 
             {/* 提供内容 */}
             {vendor.profile?.services && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">提供内容</h2>
-                <p className="text-gray-700 whitespace-pre-line">{vendor.profile.services}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">提供内容</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.services}</p>
               </div>
             )}
 
             {/* 制約 */}
             {vendor.profile?.constraints && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold mb-4">制約・注意事項</h2>
-                <p className="text-gray-700 whitespace-pre-line">{vendor.profile.constraints}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">制約・注意事項</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.constraints}</p>
               </div>
             )}
           </div>
 
-          <div>
+          <div className="space-y-6">
             {/* 基本情報 */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">基本情報</h2>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-sm text-gray-600">カテゴリ</div>
-                  <div className="font-medium">
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 sticky top-24 fade-in">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報</h2>
+              <div className="space-y-4">
+                <div className="pb-4 border-b border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">カテゴリ</div>
+                  <div className="font-semibold text-gray-900 text-lg">
                     {vendor.categories.map((c) => c.category.name).join(', ')}
                   </div>
                 </div>
                 {vendor.profile?.areas && vendor.profile.areas.length > 0 && (
-                  <div>
-                    <div className="text-sm text-gray-600">対応エリア</div>
-                    <div className="font-medium">{vendor.profile.areas.join(', ')}</div>
+                  <div className="pb-4 border-b border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      対応エリア
+                    </div>
+                    <div className="font-semibold text-gray-900">{vendor.profile.areas.join(', ')}</div>
                   </div>
                 )}
                 {vendor.profile && (
-                  <div>
-                    <div className="text-sm text-gray-600">価格目安</div>
-                    <div className="font-medium text-pink-600">
+                  <div className="pb-4 border-b border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">価格目安</div>
+                    <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
                       {vendor.profile.priceMin && (
                         <>¥{vendor.profile.priceMin.toLocaleString()}〜</>
                       )}
@@ -281,12 +320,12 @@ export default function VendorDetailPage() {
                 )}
                 {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
                   <div>
-                    <div className="text-sm text-gray-600">テイスト</div>
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">テイスト</div>
                     <div className="flex flex-wrap gap-2">
                       {vendor.profile.styleTags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-1 bg-pink-100 text-pink-700 rounded text-sm"
+                          className="px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 text-pink-700 rounded-full text-sm font-medium border border-pink-200"
                         >
                           {tag}
                         </span>
@@ -299,12 +338,12 @@ export default function VendorDetailPage() {
 
             {/* PlanBoardに追加 */}
             {planBoardSlots.length > 0 && vendor && (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">PlanBoardに追加</h2>
-                <p className="text-sm text-gray-600 mb-3">
+              <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">PlanBoardに追加</h2>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
                   このベンダーをPlanBoardの候補として追加できます
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {vendor.categories.map((vc) => {
                     const slot = planBoardSlots.find(
                       (s) => s.category.name === vc.category.name
@@ -315,7 +354,7 @@ export default function VendorDetailPage() {
                         key={slot.id}
                         onClick={() => handleAddToPlanBoard(slot.id)}
                         disabled={addingToPlanBoard}
-                        className="w-full px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:opacity-50 transition-colors text-sm"
+                        className="w-full px-4 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg hover:from-pink-700 hover:to-rose-700 disabled:opacity-50 transition-all font-semibold shadow-lg hover:shadow-xl hover:scale-105 text-sm"
                       >
                         {addingToPlanBoard ? '追加中...' : `${vc.category.name}に追加`}
                       </button>
@@ -325,7 +364,7 @@ export default function VendorDetailPage() {
                 {vendor.categories.every(
                   (vc) => !planBoardSlots.find((s) => s.category.name === vc.category.name)
                 ) && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 mt-4">
                     このベンダーのカテゴリに対応するスロットがありません
                   </p>
                 )}
@@ -333,11 +372,11 @@ export default function VendorDetailPage() {
             )}
 
             {/* 問い合わせフォーム */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">問い合わせ</h2>
-              <form onSubmit={handleSubmitInquiry} className="space-y-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">問い合わせ</h2>
+              <form onSubmit={handleSubmitInquiry} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     希望日
                   </label>
                   <input
@@ -346,11 +385,11 @@ export default function VendorDetailPage() {
                     onChange={(e) =>
                       setInquiryForm({ ...inquiryForm, weddingDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     エリア
                   </label>
                   <input
@@ -359,12 +398,12 @@ export default function VendorDetailPage() {
                     onChange={(e) =>
                       setInquiryForm({ ...inquiryForm, area: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
                     placeholder="例: 東京都"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     人数
                   </label>
                   <input
@@ -373,38 +412,38 @@ export default function VendorDetailPage() {
                     onChange={(e) =>
                       setInquiryForm({ ...inquiryForm, guestCount: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
                     placeholder="例: 50"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     予算感
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3 items-center">
                     <input
                       type="number"
                       value={inquiryForm.budgetRangeMin}
                       onChange={(e) =>
                         setInquiryForm({ ...inquiryForm, budgetRangeMin: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
                       placeholder="最低"
                     />
-                    <span className="self-center">〜</span>
+                    <span className="text-gray-500 font-medium">〜</span>
                     <input
                       type="number"
                       value={inquiryForm.budgetRangeMax}
                       onChange={(e) =>
                         setInquiryForm({ ...inquiryForm, budgetRangeMax: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
                       placeholder="最高"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     メッセージ
                   </label>
                   <textarea
@@ -413,23 +452,63 @@ export default function VendorDetailPage() {
                       setInquiryForm({ ...inquiryForm, message: e.target.value })
                     }
                     required
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    rows={5}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none resize-none"
                     placeholder="ご希望の内容をお聞かせください"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-pink-600 text-white py-2 rounded-md hover:bg-pink-700 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-4 rounded-lg hover:from-pink-700 hover:to-rose-700 disabled:opacity-50 font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
                 >
-                  {submitting ? '送信中...' : '問い合わせを送信'}
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      送信中...
+                    </span>
+                  ) : (
+                    '問い合わせを送信'
+                  )}
                 </button>
               </form>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ライトボックス */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+            aria-label="閉じる"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="relative max-w-7xl max-h-full" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxImage}
+              alt="拡大画像"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

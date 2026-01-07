@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, setSession } from '@/lib/auth'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -58,15 +59,32 @@ export async function POST(request: NextRequest) {
       message: '登録が完了しました。管理者の承認をお待ちください。',
     })
   } catch (error) {
+    // 詳細なエラー情報をログに出力（デバッグ用）
+    console.error('Signup error:', error)
+    
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: '入力データが不正です', details: error.issues },
         { status: 400 }
       )
     }
-    console.error('Signup error:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error('Prisma error code:', error.code)
+      console.error('Prisma error meta:', error.meta)
+    }
+    
     return NextResponse.json(
-      { error: '登録に失敗しました' },
+      { 
+        error: '登録に失敗しました',
+        // 開発環境でのみエラー詳細を返す
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error ? { details: error.message } : {})
+      },
       { status: 500 }
     )
   }

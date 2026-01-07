@@ -61,30 +61,48 @@ export async function GET(request: NextRequest) {
       orderBy = { name: 'asc' }
     }
 
-    const [vendorsData, total] = await Promise.all([
-      prisma.vendor.findMany({
-        where,
-        include: {
-          categories: {
+    // 接続プールタイムアウトを防ぐため、リトライロジックを追加
+    let vendorsData, total
+    let retries = 0
+    const maxRetries = 3
+
+    while (retries < maxRetries) {
+      try {
+        [vendorsData, total] = await Promise.all([
+          prisma.vendor.findMany({
+            where,
             include: {
-              category: true,
+              categories: {
+                include: {
+                  category: true,
+                },
+              },
+              profiles: {
+                where: { isDefault: true },
+                take: 1,
+              },
+              gallery: {
+                take: 1,
+                orderBy: { displayOrder: 'asc' },
+              },
             },
-          },
-          profiles: {
-            where: { isDefault: true },
-            take: 1,
-          },
-          gallery: {
-            take: 1,
-            orderBy: { displayOrder: 'asc' },
-          },
-        },
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.vendor.count({ where }),
-    ])
+            orderBy,
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+          prisma.vendor.count({ where }),
+        ])
+        break // 成功したらループを抜ける
+      } catch (error: any) {
+        if (error?.code === 'P2024' && retries < maxRetries - 1) {
+          // 接続プールタイムアウトの場合、少し待ってからリトライ
+          retries++
+          await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+          continue
+        }
+        throw error // それ以外のエラーまたは最大リトライ回数に達した場合は再スロー
+      }
+    }
 
     // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
     const vendors = vendorsData.map((vendor) => ({
@@ -102,23 +120,40 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    // 詳細なエラー情報をログに出力（デバッグ用）
     console.error('Vendors search error:', error)
-
-    // DB につながっていない・起動していない場合は、エラーではなく空配列を返す
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P5010') {
-      return NextResponse.json({
-        vendors: [],
-        pagination: {
-          page: 1,
-          limit: 20,
-          total: 0,
-          totalPages: 0,
-        },
-      })
+    
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error('Prisma error code:', error.code)
+      console.error('Prisma error meta:', error.meta)
+      
+      // P5010: データベース接続エラー
+      // P2024: 接続プールタイムアウト
+      if (error.code === 'P5010' || error.code === 'P2024') {
+        console.warn(`Database connection error (${error.code}), returning empty results`)
+        return NextResponse.json({
+          vendors: [],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 0,
+          },
+        })
+      }
     }
 
     return NextResponse.json(
-      { error: '検索に失敗しました' },
+      { 
+        error: '検索に失敗しました',
+        // 開発環境でのみエラー詳細を返す（本番環境ではセキュリティのため非表示）
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error ? { details: error.message } : {})
+      },
       { status: 500 }
     )
   }

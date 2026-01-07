@@ -65,23 +65,34 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
   }
 
   return (
-    <section className="mb-12">
-      <div className="flex items-baseline justify-between mb-4">
-        <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
+    <section className="mb-16 fade-in">
+      <div className="flex items-baseline justify-between mb-6">
+        <h3 className="text-3xl font-bold text-gray-900 tracking-tight">
           {categoryName}
         </h3>
         <Link
           href={`/search?category=${encodeURIComponent(categoryName)}`}
-          className="text-sm text-pink-600 hover:text-pink-700 hover:underline"
+          className="text-sm font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors"
         >
-          このカテゴリのベンダーをもっと見る
+          このカテゴリのベンダーをもっと見る →
         </Link>
       </div>
 
       {loading ? (
-        <div className="text-gray-500 text-sm py-6">このカテゴリのベンダーを読み込み中です...</div>
+        <div className="flex gap-6 overflow-x-auto pb-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="min-w-[300px] bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="w-full h-64 skeleton" />
+              <div className="p-6">
+                <div className="h-6 w-3/4 skeleton mb-3 rounded" />
+                <div className="h-5 w-1/2 skeleton mb-2 rounded" />
+                <div className="h-4 w-full skeleton rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : vendors.length === 0 ? (
-        <div className="text-gray-400 text-sm py-6 border border-dashed border-gray-200 rounded-lg text-center">
+        <div className="text-gray-400 text-sm py-12 border-2 border-dashed border-gray-200 rounded-xl text-center bg-gray-50">
           まだこのカテゴリのベンダーは登録されていません。
         </div>
       ) : (
@@ -105,10 +116,10 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
 
           <div
             ref={scrollContainerRef}
-            className="flex gap-4 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory hide-scrollbar"
+            className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory hide-scrollbar"
           >
-            {vendors.map((vendor) => (
-              <VendorCard key={vendor.id} vendor={vendor} />
+            {vendors.map((vendor, index) => (
+              <VendorCard key={vendor.id} vendor={vendor} index={index} />
             ))}
           </div>
         </div>
@@ -119,11 +130,14 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
 
 interface VendorCardProps {
   vendor: Vendor
+  index: number
 }
 
-function VendorCard({ vendor }: VendorCardProps) {
+function VendorCard({ vendor, index }: VendorCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showReadMore, setShowReadMore] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
   const bioRef = useRef<HTMLParagraphElement>(null)
 
   const images: string[] = [
@@ -163,90 +177,114 @@ function VendorCard({ vendor }: VendorCardProps) {
   return (
     <Link
       href={`/vendors/${vendor.id}`}
-      className="min-w-[300px] max-w-[300px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+      className="min-w-[320px] max-w-[320px] bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 border border-gray-100 group"
+      style={{ animationDelay: `${index * 100}ms` }}
     >
-      {currentImage && (
-        <div className="relative w-full h-56 bg-gray-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={currentImage}
-            alt={vendor.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement
-              target.style.display = 'none'
-            }}
-          />
-          {images.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={(e) => handleImageNav('prev', e)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm text-gray-700 shadow-md z-10"
-                aria-label="前の画像"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleImageNav('next', e)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm text-gray-700 shadow-md z-10"
-                aria-label="次の画像"
-              >
-                ›
-              </button>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.slice(0, 5).map((_, idx) => (
-                  <span
-                    key={idx}
-                    className={`w-2 h-2 rounded-full ${
-                      idx === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+      <div className="relative w-full h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 overflow-hidden">
+        {currentImage && !imageError ? (
+          <>
+            {imageLoading && (
+              <div className="absolute inset-0 skeleton" />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentImage}
+              alt={vendor.name}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true)
+                setImageLoading(false)
+              }}
+            />
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50">
+            <div className="text-center">
+              <svg className="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-gray-400">写真を準備中</p>
+            </div>
+          </div>
+        )}
+        
+        {/* ホバー時のオーバーレイ */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <span className="text-white font-semibold text-lg px-4 py-2 bg-pink-600/90 rounded-lg backdrop-blur-sm">
+            詳細を見る
+          </span>
         </div>
-      )}
-      <div className="p-4">
-        <h4 className="text-lg font-semibold mb-2 text-gray-900 line-clamp-1">{vendor.name}</h4>
+
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => handleImageNav('prev', e)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white rounded-full w-10 h-10 flex items-center justify-center text-lg text-gray-700 shadow-lg z-20 transition-all hover:scale-110"
+              aria-label="前の画像"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleImageNav('next', e)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/95 hover:bg-white rounded-full w-10 h-10 flex items-center justify-center text-lg text-gray-700 shadow-lg z-20 transition-all hover:scale-110"
+              aria-label="次の画像"
+            >
+              ›
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+              {images.slice(0, 5).map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="p-6">
+        <h4 className="text-xl font-bold mb-3 text-gray-900 line-clamp-1 group-hover:text-pink-600 transition-colors">{vendor.name}</h4>
         
         {/* 価格 */}
         {vendor.profile?.priceMin && (
-          <div className="text-base font-semibold text-pink-600 mb-2">
+          <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-3">
             ¥{vendor.profile.priceMin.toLocaleString()}〜
           </div>
         )}
 
         {/* 所在地/エリア */}
         {vendor.profile?.areas && vendor.profile.areas.length > 0 && (
-          <div className="text-sm text-gray-600 mb-2 flex items-center gap-1">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-sm text-gray-600 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="line-clamp-1">{vendor.profile.areas[0]}</span>
+            <span className="line-clamp-1 font-medium">{vendor.profile.areas[0]}</span>
           </div>
         )}
 
         {/* 会場の場合：収容人数 */}
         {isVenue && vendor.profile?.maxGuests && (
-          <div className="text-sm text-gray-600 mb-2 flex items-center gap-1">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-sm text-gray-600 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span>{vendor.profile.maxGuests.toLocaleString()}名まで収容可能</span>
+            <span className="font-medium">{vendor.profile.maxGuests.toLocaleString()}名まで収容可能</span>
           </div>
         )}
 
         {/* 特徴タグ（serviceTags - 最大3つまで） */}
         {vendor.profile?.serviceTags && vendor.profile.serviceTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {vendor.profile.serviceTags.slice(0, 3).map((tag, idx) => (
               <span
                 key={`service-${idx}`}
-                className="px-2 py-0.5 bg-pink-50 text-pink-700 text-xs rounded-full border border-pink-200"
+                className="px-3 py-1 bg-gradient-to-r from-pink-50 to-rose-50 text-pink-700 text-xs font-medium rounded-full border border-pink-200 shadow-sm"
               >
                 {tag}
               </span>
@@ -256,11 +294,11 @@ function VendorCard({ vendor }: VendorCardProps) {
 
         {/* スタイルタグ（styleTags - 最大3つまで） */}
         {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {vendor.profile.styleTags.slice(0, 3).map((tag, idx) => (
               <span
                 key={`style-${idx}`}
-                className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
+                className="px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 text-xs font-medium rounded-full border border-purple-200 shadow-sm"
               >
                 {tag}
               </span>
@@ -270,8 +308,8 @@ function VendorCard({ vendor }: VendorCardProps) {
 
         {/* 紹介文 */}
         {vendor.bio && (
-          <div className="mt-2">
-            <p ref={bioRef} className="text-sm text-gray-600 line-clamp-3">
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <p ref={bioRef} className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
               {vendor.bio}
             </p>
             {showReadMore && (
@@ -281,9 +319,9 @@ function VendorCard({ vendor }: VendorCardProps) {
                   e.stopPropagation()
                   window.location.href = `/vendors/${vendor.id}`
                 }}
-                className="text-sm text-pink-600 hover:text-pink-700 hover:underline mt-1 font-medium"
+                className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline mt-2 transition-colors"
               >
-                Read More...
+                続きを読む →
               </button>
             )}
           </div>
