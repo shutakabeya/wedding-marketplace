@@ -60,7 +60,15 @@ export default function PlanBoardPage() {
     }
   }
 
-  const updateSlot = async (slotId: string, updates: Partial<PlanBoardSlot>) => {
+  const updateSlot = async (
+    slotId: string,
+    updates: {
+      state?: 'unselected' | 'candidate' | 'selected' | 'skipped'
+      selectedVendorId?: string | null
+      estimatedCost?: number | null
+      note?: string | null
+    }
+  ) => {
     try {
       const res = await fetch(`/api/plan-board/slots/${slotId}`, {
         method: 'PATCH',
