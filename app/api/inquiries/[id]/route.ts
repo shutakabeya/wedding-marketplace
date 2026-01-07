@@ -18,13 +18,16 @@ export async function GET(
 
     const { id } = await params
 
-    const inquiry = await prisma.inquiry.findUnique({
+    const inquiryData = await prisma.inquiry.findUnique({
       where: { id },
       include: {
         couple: true,
         vendor: {
           include: {
-            profile: true,
+            profiles: {
+              where: { isDefault: true },
+              take: 1,
+            },
           },
         },
         category: true,
@@ -34,7 +37,7 @@ export async function GET(
       },
     })
 
-    if (!inquiry) {
+    if (!inquiryData) {
       return NextResponse.json(
         { error: '問い合わせが見つかりません' },
         { status: 404 }
@@ -44,14 +47,23 @@ export async function GET(
     // 権限チェック（管理者は全問い合わせを閲覧可能）
     if (session.type !== 'admin') {
       if (
-        (session.type === 'couple' && inquiry.coupleId !== session.id) ||
-        (session.type === 'vendor' && inquiry.vendorId !== session.id)
+        (session.type === 'couple' && inquiryData.coupleId !== session.id) ||
+        (session.type === 'vendor' && inquiryData.vendorId !== session.id)
       ) {
         return NextResponse.json(
           { error: '権限がありません' },
           { status: 403 }
         )
       }
+    }
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const inquiry = {
+      ...inquiryData,
+      vendor: {
+        ...inquiryData.vendor,
+        profile: inquiryData.vendor.profiles[0] || null,
+      },
     }
 
     return NextResponse.json({ inquiry })
@@ -109,14 +121,17 @@ export async function PATCH(
       }
     }
 
-    const updatedInquiry = await prisma.inquiry.update({
+    const updatedInquiryData = await prisma.inquiry.update({
       where: { id },
       data: { status: data.status },
       include: {
         couple: true,
         vendor: {
           include: {
-            profile: true,
+            profiles: {
+              where: { isDefault: true },
+              take: 1,
+            },
           },
         },
         category: true,
@@ -125,6 +140,15 @@ export async function PATCH(
         },
       },
     })
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const updatedInquiry = {
+      ...updatedInquiryData,
+      vendor: {
+        ...updatedInquiryData.vendor,
+        profile: updatedInquiryData.vendor.profiles[0] || null,
+      },
+    }
 
     return NextResponse.json({ inquiry: updatedInquiry })
   } catch (error) {

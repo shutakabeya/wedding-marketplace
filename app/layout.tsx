@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "結婚式ベンダーマーケットプレイス",
+  title: "wedding market",
   description: "理想の結婚式を、あなたの手で。会場から写真、ケータリングまで、すべてのベンダーを1つのプラットフォームで",
 };
 

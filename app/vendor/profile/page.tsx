@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Header } from '@/components/Header'
 
 interface Vendor {
   id: string
   name: string
   bio: string | null
+  logoUrl: string | null
   categories: Array<{ category: { id: string; name: string } }>
   profile: {
+    imageUrl: string | null
     areas: string[]
     priceMin: number | null
     priceMax: number | null
@@ -28,6 +31,7 @@ export default function VendorProfilePage() {
   const [formData, setFormData] = useState({
     name: '',
     bio: '',
+    logoUrl: '',
     categoryIds: [] as string[],
     areas: [] as string[],
     areaInput: '',
@@ -37,7 +41,10 @@ export default function VendorProfilePage() {
     styleTagInput: '',
     services: '',
     constraints: '',
+    profileImageUrl: '',
   })
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false)
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
 
@@ -74,6 +81,7 @@ export default function VendorProfilePage() {
       setFormData({
         name: v.name || '',
         bio: v.bio || '',
+        logoUrl: v.logoUrl || '',
         categoryIds: v.categories.map((c: any) => c.category.id),
         areas: v.profile?.areas || [],
         areaInput: '',
@@ -83,12 +91,57 @@ export default function VendorProfilePage() {
         styleTagInput: '',
         services: v.profile?.services || '',
         constraints: v.profile?.constraints || '',
+        profileImageUrl: v.profile?.imageUrl || '',
       })
     } catch (error) {
       console.error('Failed to load profile:', error)
       alert('プロフィールの取得に失敗しました')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleImageUpload = async (file: File, type: 'logo' | 'profile') => {
+    const formDataToSend = new FormData()
+    formDataToSend.append('file', file)
+    formDataToSend.append('type', type)
+
+    if (type === 'logo') {
+      setUploadingLogo(true)
+    } else {
+      setUploadingProfileImage(true)
+    }
+
+    try {
+      const res = await fetch('/api/vendor/upload-image', {
+        method: 'POST',
+        body: formDataToSend,
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || '画像のアップロードに失敗しました')
+      }
+
+      const data = await res.json()
+      
+      if (type === 'logo') {
+        setFormData({ ...formData, logoUrl: data.imageUrl })
+      } else {
+        setFormData({ ...formData, profileImageUrl: data.imageUrl })
+      }
+
+      return data.imageUrl
+    } catch (error: any) {
+      console.error('Failed to upload image:', error)
+      alert(error.message || '画像のアップロードに失敗しました')
+      throw error
+    } finally {
+      if (type === 'logo') {
+        setUploadingLogo(false)
+      } else {
+        setUploadingProfileImage(false)
+      }
     }
   }
 
@@ -103,6 +156,7 @@ export default function VendorProfilePage() {
         body: JSON.stringify({
           name: formData.name,
           bio: formData.bio || null,
+          logoUrl: formData.logoUrl || null,
           categoryIds: formData.categoryIds,
           areas: formData.areas,
           priceMin: formData.priceMin ? parseInt(formData.priceMin) : null,
@@ -110,6 +164,7 @@ export default function VendorProfilePage() {
           styleTags: formData.styleTags,
           services: formData.services || null,
           constraints: formData.constraints || null,
+          imageUrl: formData.profileImageUrl || null,
         }),
       })
 
@@ -180,8 +235,9 @@ export default function VendorProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <Header />
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Link href="/vendor/dashboard" className="text-pink-600 hover:underline">
             ← ダッシュボードに戻る
@@ -194,6 +250,80 @@ export default function VendorProfilePage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">基本情報</h2>
             <div className="space-y-4">
+              {/* ロゴ画像 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ロゴ画像
+                </label>
+                <div className="flex items-center gap-4">
+                  {formData.logoUrl && (
+                    <img
+                      src={formData.logoUrl}
+                      alt="ロゴ"
+                      className="w-24 h-24 object-cover rounded-lg border border-gray-300"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          try {
+                            await handleImageUpload(file, 'logo')
+                          } catch (error) {
+                            // エラーは既にalertで表示済み
+                          }
+                        }
+                      }}
+                      disabled={uploadingLogo}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 disabled:opacity-50"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPEG、PNG、WebP形式、5MB以下
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* プロフィール画像 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  プロフィール画像
+                </label>
+                <div className="flex items-center gap-4">
+                  {formData.profileImageUrl && (
+                    <img
+                      src={formData.profileImageUrl}
+                      alt="プロフィール画像"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          try {
+                            await handleImageUpload(file, 'profile')
+                          } catch (error) {
+                            // エラーは既にalertで表示済み
+                          }
+                        }
+                      }}
+                      disabled={uploadingProfileImage}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 disabled:opacity-50"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPEG、PNG、WebP形式、5MB以下
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   屋号・名前 <span className="text-red-500">*</span>
@@ -407,7 +537,386 @@ export default function VendorProfilePage() {
             </Link>
           </div>
         </form>
+
+        {/* 複数プロフィール管理 */}
+        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-4">複数プロフィール管理</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            エリアや価格帯が異なる複数のプロフィールを作成できます。デフォルトプロフィールは検索結果に表示されます。
+          </p>
+          <ProfilesManager />
+        </div>
       </div>
+    </div>
+  )
+}
+
+// 複数プロフィール管理コンポーネント
+function ProfilesManager() {
+  const router = useRouter()
+  const [profiles, setProfiles] = useState<Array<{
+    id: string
+    name: string
+    isDefault: boolean
+    areas: string[]
+    priceMin: number | null
+    priceMax: number | null
+    createdAt: string
+  }>>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    areas: [] as string[],
+    areaInput: '',
+    priceMin: '',
+    priceMax: '',
+    styleTags: [] as string[],
+    styleTagInput: '',
+    services: '',
+    constraints: '',
+    isDefault: false,
+  })
+
+  useEffect(() => {
+    loadProfiles()
+  }, [])
+
+  const loadProfiles = async () => {
+    try {
+      const res = await fetch('/api/vendor/profiles')
+      if (res.status === 401) {
+        router.push('/vendor/login')
+        return
+      }
+      if (!res.ok) {
+        throw new Error('プロフィールの取得に失敗しました')
+      }
+      const data = await res.json()
+      setProfiles(data.profiles || [])
+    } catch (error) {
+      console.error('Failed to load profiles:', error)
+      alert('プロフィールの取得に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    try {
+      const res = await fetch('/api/vendor/profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          areas: formData.areas,
+          priceMin: formData.priceMin ? parseInt(formData.priceMin) : null,
+          priceMax: formData.priceMax ? parseInt(formData.priceMax) : null,
+          styleTags: formData.styleTags,
+          services: formData.services || null,
+          constraints: formData.constraints || null,
+          isDefault: formData.isDefault,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || '作成に失敗しました')
+        return
+      }
+
+      alert('プロフィールを作成しました')
+      setShowCreateForm(false)
+      setFormData({
+        name: '',
+        areas: [],
+        areaInput: '',
+        priceMin: '',
+        priceMax: '',
+        styleTags: [],
+        styleTagInput: '',
+        services: '',
+        constraints: '',
+        isDefault: false,
+      })
+      await loadProfiles()
+    } catch (error) {
+      console.error('Failed to create profile:', error)
+      alert('作成に失敗しました')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('このプロフィールを削除しますか？')) return
+
+    try {
+      const res = await fetch(`/api/vendor/profiles/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || '削除に失敗しました')
+        return
+      }
+
+      alert('プロフィールを削除しました')
+      await loadProfiles()
+    } catch (error) {
+      console.error('Failed to delete profile:', error)
+      alert('削除に失敗しました')
+    }
+  }
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      const res = await fetch(`/api/vendor/profiles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDefault: true }),
+      })
+
+      if (!res.ok) {
+        throw new Error('デフォルト設定に失敗しました')
+      }
+
+      await loadProfiles()
+    } catch (error) {
+      console.error('Failed to set default:', error)
+      alert('デフォルト設定に失敗しました')
+    }
+  }
+
+  const addArea = () => {
+    if (formData.areaInput.trim() && !formData.areas.includes(formData.areaInput.trim())) {
+      setFormData({
+        ...formData,
+        areas: [...formData.areas, formData.areaInput.trim()],
+        areaInput: '',
+      })
+    }
+  }
+
+  const removeArea = (area: string) => {
+    setFormData({
+      ...formData,
+      areas: formData.areas.filter((a) => a !== area),
+    })
+  }
+
+  const addStyleTag = () => {
+    if (formData.styleTagInput.trim() && !formData.styleTags.includes(formData.styleTagInput.trim())) {
+      setFormData({
+        ...formData,
+        styleTags: [...formData.styleTags, formData.styleTagInput.trim()],
+        styleTagInput: '',
+      })
+    }
+  }
+
+  const removeStyleTag = (tag: string) => {
+    setFormData({
+      ...formData,
+      styleTags: formData.styleTags.filter((t) => t !== tag),
+    })
+  }
+
+  if (loading) {
+    return <div className="text-gray-600">読み込み中...</div>
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* プロフィール一覧 */}
+      <div className="space-y-3">
+        {profiles.map((profile) => (
+          <div
+            key={profile.id}
+            className={`p-4 border-2 rounded-lg ${
+              profile.isDefault
+                ? 'border-pink-500 bg-pink-50'
+                : 'border-gray-200 bg-white'
+            }`}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-gray-900">{profile.name}</h3>
+                  {profile.isDefault && (
+                    <span className="px-2 py-1 bg-pink-600 text-white text-xs rounded">
+                      デフォルト
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  {profile.areas.length > 0 && (
+                    <div>対応エリア: {profile.areas.join(', ')}</div>
+                  )}
+                  {(profile.priceMin || profile.priceMax) && (
+                    <div>
+                      価格: {profile.priceMin && `¥${profile.priceMin.toLocaleString()}〜`}
+                      {profile.priceMax && `¥${profile.priceMax.toLocaleString()}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {!profile.isDefault && (
+                  <button
+                    onClick={() => handleSetDefault(profile.id)}
+                    className="px-3 py-1 bg-pink-600 text-white rounded text-sm hover:bg-pink-700"
+                  >
+                    デフォルトに設定
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDelete(profile.id)}
+                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                  disabled={profile.isDefault}
+                >
+                  削除
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 新規作成フォーム */}
+      {!showCreateForm ? (
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-pink-500 hover:text-pink-600 transition-colors"
+        >
+          + 新しいプロフィールを作成
+        </button>
+      ) : (
+        <div className="border-2 border-pink-200 rounded-lg p-4 bg-pink-50">
+          <h3 className="font-semibold mb-4">新しいプロフィール</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                プロフィール名 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="例: 東京エリア向け"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                対応エリア
+              </label>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={formData.areaInput}
+                  onChange={(e) => setFormData({ ...formData, areaInput: e.target.value })}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addArea()
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="例: 東京都"
+                />
+                <button
+                  type="button"
+                  onClick={addArea}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700"
+                >
+                  追加
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.areas.map((area) => (
+                  <span
+                    key={area}
+                    className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm flex items-center gap-2"
+                  >
+                    {area}
+                    <button
+                      type="button"
+                      onClick={() => removeArea(area)}
+                      className="text-pink-700 hover:text-pink-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最低価格（円）
+                </label>
+                <input
+                  type="number"
+                  value={formData.priceMin}
+                  onChange={(e) => setFormData({ ...formData, priceMin: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最高価格（円）
+                </label>
+                <input
+                  type="number"
+                  value={formData.priceMax}
+                  onChange={(e) => setFormData({ ...formData, priceMax: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.isDefault}
+                  onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                />
+                <span className="text-sm text-gray-700">デフォルトプロフィールに設定</span>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreate}
+                disabled={!formData.name.trim()}
+                className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:opacity-50"
+              >
+                作成
+              </button>
+              <button
+                onClick={() => {
+                  setShowCreateForm(false)
+                  setFormData({
+                    name: '',
+                    areas: [],
+                    areaInput: '',
+                    priceMin: '',
+                    priceMax: '',
+                    styleTags: [],
+                    styleTagInput: '',
+                    services: '',
+                    constraints: '',
+                    isDefault: false,
+                  })
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

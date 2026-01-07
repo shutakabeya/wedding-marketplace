@@ -8,26 +8,35 @@ export async function GET(
   try {
     const { id } = await params
 
-    const vendor = await prisma.vendor.findUnique({
-      where: { id, status: 'approved' },
+    const vendorData = await prisma.vendor.findUnique({
+      where: { id },
       include: {
         categories: {
           include: {
             category: true,
           },
         },
-        profile: true,
+        profiles: {
+          where: { isDefault: true },
+          take: 1,
+        },
         gallery: {
           orderBy: { displayOrder: 'asc' },
         },
       },
     })
 
-    if (!vendor) {
+    if (!vendorData) {
       return NextResponse.json(
         { error: 'ベンダーが見つかりません' },
         { status: 404 }
       )
+    }
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const vendor = {
+      ...vendorData,
+      profile: vendorData.profiles[0] || null,
     }
 
     return NextResponse.json({ vendor })

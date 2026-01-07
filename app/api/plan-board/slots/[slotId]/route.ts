@@ -42,7 +42,7 @@ export async function PATCH(
       )
     }
 
-    const updatedSlot = await prisma.planBoardSlot.update({
+    const updatedSlotData = await prisma.planBoardSlot.update({
       where: { id: slotId },
       data: {
         state: data.state,
@@ -54,20 +54,44 @@ export async function PATCH(
         category: true,
         selectedVendor: {
           include: {
-            profile: true,
+            profiles: {
+              where: { isDefault: true },
+              take: 1,
+            },
           },
         },
         candidates: {
           include: {
             vendor: {
               include: {
-                profile: true,
+                profiles: {
+                  where: { isDefault: true },
+                  take: 1,
+                },
               },
             },
           },
         },
       },
     })
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const updatedSlot = {
+      ...updatedSlotData,
+      selectedVendor: updatedSlotData.selectedVendor
+        ? {
+            ...updatedSlotData.selectedVendor,
+            profile: updatedSlotData.selectedVendor.profiles[0] || null,
+          }
+        : null,
+      candidates: updatedSlotData.candidates.map((candidate: any) => ({
+        ...candidate,
+        vendor: {
+          ...candidate.vendor,
+          profile: candidate.vendor.profiles[0] || null,
+        },
+      })),
+    }
 
     return NextResponse.json({ slot: updatedSlot })
   } catch (error) {

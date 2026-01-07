@@ -13,9 +13,11 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    // 承認済みベンダーのみ表示
+    // 承認済み・承認待ちのベンダーを表示（rejected、suspendedは除外）
     const where: any = {
-      status: 'approved',
+      status: {
+        in: ['approved', 'pending'],
+      },
     }
 
     // カテゴリフィルタ
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
       orderBy = { name: 'asc' }
     }
 
-    const [vendors, total] = await Promise.all([
+    const [vendorsData, total] = await Promise.all([
       prisma.vendor.findMany({
         where,
         include: {
@@ -68,7 +70,10 @@ export async function GET(request: NextRequest) {
               category: true,
             },
           },
-          profile: true,
+          profiles: {
+            where: { isDefault: true },
+            take: 1,
+          },
           gallery: {
             take: 1,
             orderBy: { displayOrder: 'asc' },
@@ -80,6 +85,12 @@ export async function GET(request: NextRequest) {
       }),
       prisma.vendor.count({ where }),
     ])
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const vendors = vendorsData.map((vendor) => ({
+      ...vendor,
+      profile: vendor.profiles[0] || null,
+    }))
 
     return NextResponse.json({
       vendors,

@@ -12,7 +12,7 @@ export async function GET() {
       )
     }
 
-    const vendors = await prisma.vendor.findMany({
+    const vendorsData = await prisma.vendor.findMany({
       where: { status: 'pending' },
       include: {
         categories: {
@@ -20,10 +20,19 @@ export async function GET() {
             category: true,
           },
         },
-        profile: true,
+        profiles: {
+          where: { isDefault: true },
+          take: 1,
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const vendors = vendorsData.map((vendor) => ({
+      ...vendor,
+      profile: vendor.profiles[0] || null,
+    }))
 
     return NextResponse.json({ vendors })
   } catch (error) {

@@ -21,7 +21,10 @@ export async function GET() {
             category: true,
           },
         },
-        profile: true,
+        profiles: {
+          where: { isDefault: true },
+          take: 1,
+        },
         gallery: {
           orderBy: { displayOrder: 'asc' },
         },
@@ -35,7 +38,13 @@ export async function GET() {
       )
     }
 
-    return NextResponse.json({ vendor })
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    return NextResponse.json({
+      vendor: {
+        ...vendor,
+        profile: vendor.profiles[0] || null,
+      },
+    })
   } catch (error) {
     console.error('Vendor profile GET error:', error)
     return NextResponse.json(
@@ -48,6 +57,7 @@ export async function GET() {
 const updateProfileSchema = z.object({
   name: z.string().optional(),
   bio: z.string().optional(),
+  logoUrl: z.string().optional().nullable(),
   categoryIds: z.array(z.string().uuid()).optional(),
   areas: z.array(z.string()).optional(),
   priceMin: z.number().optional().nullable(),
@@ -55,6 +65,7 @@ const updateProfileSchema = z.object({
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
 })
 
 export async function PATCH(request: NextRequest) {
@@ -71,12 +82,13 @@ export async function PATCH(request: NextRequest) {
     const data = updateProfileSchema.parse(body)
 
     // ベンダー基本情報更新
-    if (data.name || data.bio !== undefined) {
+    if (data.name || data.bio !== undefined || data.logoUrl !== undefined) {
       await prisma.vendor.update({
         where: { id: session.id },
         data: {
           name: data.name,
           bio: data.bio,
+          logoUrl: data.logoUrl,
         },
       })
     }
@@ -96,27 +108,45 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // プロフィール更新
-    await prisma.vendorProfile.upsert({
-      where: { vendorId: session.id },
-      update: {
-        areas: data.areas,
-        priceMin: data.priceMin,
-        priceMax: data.priceMax,
-        styleTags: data.styleTags,
-        services: data.services,
-        constraints: data.constraints,
-      },
-      create: {
+    // デフォルトプロフィールを取得または作成
+    let defaultProfile = await prisma.vendorProfile.findFirst({
+      where: {
         vendorId: session.id,
-        areas: data.areas || [],
-        priceMin: data.priceMin,
-        priceMax: data.priceMax,
-        styleTags: data.styleTags || [],
-        services: data.services,
-        constraints: data.constraints,
+        isDefault: true,
       },
     })
+
+    if (!defaultProfile) {
+      // デフォルトプロフィールが存在しない場合は作成
+      defaultProfile = await prisma.vendorProfile.create({
+        data: {
+          vendorId: session.id,
+          isDefault: true,
+          name: 'デフォルトプロフィール',
+          imageUrl: data.imageUrl,
+          areas: data.areas || [],
+          priceMin: data.priceMin,
+          priceMax: data.priceMax,
+          styleTags: data.styleTags || [],
+          services: data.services,
+          constraints: data.constraints,
+        },
+      })
+    } else {
+      // 既存のデフォルトプロフィールを更新
+      await prisma.vendorProfile.update({
+        where: { id: defaultProfile.id },
+        data: {
+          imageUrl: data.imageUrl,
+          areas: data.areas,
+          priceMin: data.priceMin,
+          priceMax: data.priceMax,
+          styleTags: data.styleTags,
+          services: data.services,
+          constraints: data.constraints,
+        },
+      })
+    }
 
     const vendor = await prisma.vendor.findUnique({
       where: { id: session.id },
@@ -126,12 +156,21 @@ export async function PATCH(request: NextRequest) {
             category: true,
           },
         },
-        profile: true,
+        profiles: {
+          where: { isDefault: true },
+          take: 1,
+        },
         gallery: true,
       },
     })
 
-    return NextResponse.json({ vendor })
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const vendorWithProfile = {
+      ...vendor!,
+      profile: vendor!.profiles[0] || null,
+    }
+
+    return NextResponse.json({ vendor: vendorWithProfile })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

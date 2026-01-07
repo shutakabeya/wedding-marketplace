@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Header } from '@/components/Header'
 
 interface ThreadMessage {
   id: string
@@ -154,8 +155,9 @@ export default function CoupleInquiryDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <Header />
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Link href="/couple/inquiries" className="text-pink-600 hover:underline">
             ← 問い合わせ一覧に戻る

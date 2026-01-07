@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = createInquirySchema.parse(body)
 
-    const inquiry = await prisma.inquiry.create({
+    const inquiryData = await prisma.inquiry.create({
       data: {
         coupleId: session.id,
         vendorId: data.vendorId,
@@ -43,12 +43,24 @@ export async function POST(request: NextRequest) {
       include: {
         vendor: {
           include: {
-            profile: true,
+            profiles: {
+              where: { isDefault: true },
+              take: 1,
+            },
           },
         },
         category: true,
       },
     })
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const inquiry = {
+      ...inquiryData,
+      vendor: {
+        ...inquiryData.vendor,
+        profile: inquiryData.vendor.profiles[0] || null,
+      },
+    }
 
     // 最初のメッセージを作成
     await prisma.threadMessage.create({
@@ -99,13 +111,16 @@ export async function GET(request: NextRequest) {
       where.vendorId = session.id
     }
 
-    const inquiries = await prisma.inquiry.findMany({
+    const inquiriesData = await prisma.inquiry.findMany({
       where,
       include: {
         couple: true,
         vendor: {
           include: {
-            profile: true,
+            profiles: {
+              where: { isDefault: true },
+              take: 1,
+            },
           },
         },
         category: true,
@@ -116,6 +131,15 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const inquiries = inquiriesData.map((inq) => ({
+      ...inq,
+      vendor: {
+        ...inq.vendor,
+        profile: inq.vendor.profiles[0] || null,
+      },
+    }))
 
     return NextResponse.json({ inquiries })
   } catch (error) {

@@ -1,36 +1,24 @@
 import Link from 'next/link'
 import { CATEGORIES } from '@/lib/categories'
 import { CategoryCarousel } from '@/components/CategoryCarousel'
+import { Header } from '@/components/Header'
 
 export default function Home() {
   const orderedCategories = [...CATEGORIES].sort((a, b) => a.displayOrder - b.displayOrder)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-pink-600">結婚式ベンダーマーケットプレイス</h1>
-            <nav className="flex gap-4">
-              <Link href="/couple/login" className="text-gray-600 hover:text-pink-600">
-                カップルログイン
-              </Link>
-              <Link href="/vendor/login" className="text-gray-600 hover:text-pink-600">
-                ベンダーログイン
-              </Link>
-              <Link href="/admin/login" className="text-gray-600 hover:text-pink-600">
-                管理者ログイン
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            理想の結婚式を、カテゴリから見つける
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+            理想の結婚式をここで見つける
           </h2>
+          <p className="max-w-2xl mx-auto text-gray-600 text-sm sm:text-base">
+            会場・写真・ドレス・ケータリングなど、結婚式に必要なベンダーをカテゴリ別に一覧できます。
+            気になるベンダーは詳細から問い合わせて、<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-medium">PlanBoard</Link>で全体像を組み立てていきましょう。
+          </p>
         </div>
 
         <div className="space-y-2">

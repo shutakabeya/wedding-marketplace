@@ -61,10 +61,12 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
   return (
     <section className="mb-12">
       <div className="flex items-baseline justify-between mb-4">
-        <h3 className="text-2xl font-semibold text-gray-900">{categoryName}</h3>
+        <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
+          {categoryName}
+        </h3>
         <Link
           href={`/search?category=${encodeURIComponent(categoryName)}`}
-          className="text-sm text-pink-600 hover:text-pink-700"
+          className="text-sm text-pink-600 hover:text-pink-700 hover:underline"
         >
           このカテゴリのベンダーをもっと見る
         </Link>
@@ -81,7 +83,7 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
           <button
             type="button"
             onClick={() => scrollByAmount('left')}
-            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 items-center justify-center h-10 w-10 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 items-center justify-center h-10 w-10 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
             aria-label={`${categoryName}のベンダーを左にスクロール`}
           >
             ‹
@@ -89,7 +91,7 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
           <button
             type="button"
             onClick={() => scrollByAmount('right')}
-            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 items-center justify-center h-10 w-10 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 items-center justify-center h-10 w-10 rounded-full bg-white shadow-md border border-gray-200 text-gray-600 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
             aria-label={`${categoryName}のベンダーを右にスクロール`}
           >
             ›
@@ -103,7 +105,7 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
               <Link
                 key={vendor.id}
                 href={`/vendors/${vendor.id}`}
-                className="min-w-[260px] max-w-[260px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow snap-start"
+                className="min-w-[260px] max-w-[260px] bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
               >
                 {vendor.gallery.length > 0 && (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
         return
       }
 
-      router.push('/admin/vendors/pending')
+      router.push('/admin/dashboard')
     } catch (err) {
       setError('ログインに失敗しました')
     } finally {

@@ -53,6 +53,7 @@ model Vendor {
   passwordHash  String   @map("password_hash")
   name          String   // 屋号
   bio           String?  @db.Text
+  logoUrl       String?  @map("logo_url") // ロゴ画像URL
   status        String   @default("pending") // pending/approved/rejected/suspended
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -61,7 +62,7 @@ model Vendor {
   
   approvedBy    Admin?   @relation("VendorApprovals", fields: [approvedById], references: [id])
   categories    VendorCategory[]
-  profile       VendorProfile?
+  profiles      VendorProfile[]
   gallery       VendorGallery[]
   inquiries     Inquiry[]
   favorites     Favorite[]
@@ -86,7 +87,11 @@ model VendorCategory {
 
 // ベンダープロフィール詳細
 model VendorProfile {
-  vendorId      String   @id @map("vendor_id")
+  id            String   @id @default(uuid())
+  vendorId      String   @map("vendor_id")
+  name          String?  // プロフィール名（例: "東京エリア向け"）
+  isDefault     Boolean  @default(false) @map("is_default") // デフォルトプロフィール
+  imageUrl      String?  @map("image_url") // プロフィール画像URL
   areas         String[] // 対応エリア配列
   priceMin      Int?     @map("price_min")
   priceMax      Int?     @map("price_max")
@@ -100,6 +105,7 @@ model VendorProfile {
   vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   
   @@map("vendor_profiles")
+  @@index([vendorId])
 }
 
 // ベンダーギャラリー

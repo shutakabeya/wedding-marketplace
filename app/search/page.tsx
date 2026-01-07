@@ -3,13 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { Header } from '@/components/Header'
 
 interface Vendor {
   id: string
   name: string
   bio: string | null
+  logoUrl: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    imageUrl: string | null
     priceMin: number | null
     priceMax: number | null
     areas: string[]
@@ -55,9 +58,13 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">ベンダー検索</h1>
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <Header />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">ベンダー検索</h1>
+        <p className="text-sm text-gray-600 mb-6">
+          カテゴリやエリア、予算感で絞り込みながら、気になるベンダーを探せます。
+        </p>
 
         {/* フィルタ */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -70,7 +77,7 @@ export default function SearchPage() {
                 type="text"
                 value={filters.category}
                 onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="例: 会場"
               />
             </div>
@@ -82,7 +89,7 @@ export default function SearchPage() {
                 type="text"
                 value={filters.area}
                 onChange={(e) => setFilters({ ...filters, area: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="例: 東京都"
               />
             </div>
@@ -94,7 +101,7 @@ export default function SearchPage() {
                 type="number"
                 value={filters.priceMin}
                 onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="¥"
               />
             </div>
@@ -106,7 +113,7 @@ export default function SearchPage() {
                 type="number"
                 value={filters.priceMax}
                 onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="¥"
               />
             </div>
@@ -118,7 +125,7 @@ export default function SearchPage() {
             <select
               value={filters.sort}
               onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
             >
               <option value="recommended">おすすめ</option>
               <option value="name">名前順</option>
@@ -137,17 +144,38 @@ export default function SearchPage() {
               <Link
                 key={vendor.id}
                 href={`/vendors/${vendor.id}`}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
               >
-                {vendor.gallery.length > 0 && (
-                  <img
-                    src={vendor.gallery[0].imageUrl}
-                    alt={vendor.name}
-                    className="w-full h-48 object-cover"
-                  />
+                {/* プロフィール画像またはギャラリー画像を表示 */}
+                {(vendor.profile?.imageUrl || vendor.gallery.length > 0) && (
+                  <div className="relative w-full h-48 bg-gray-200">
+                    <img
+                      src={vendor.profile?.imageUrl || vendor.gallery[0].imageUrl}
+                      alt={vendor.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // 画像読み込みエラー時はプレースホルダーを表示
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
+                  </div>
                 )}
                 <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-2">{vendor.name}</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    {vendor.logoUrl && (
+                      <img
+                        src={vendor.logoUrl}
+                        alt={`${vendor.name}ロゴ`}
+                        className="w-12 h-12 object-cover rounded-full border border-gray-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                    )}
+                    <h3 className="text-lg font-semibold">{vendor.name}</h3>
+                  </div>
                   <div className="text-sm text-gray-600 mb-2">
                     {vendor.categories.map((c) => c.category.name).join(', ')}
                   </div>

@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { Header } from '@/components/Header'
 
 interface Vendor {
   id: string
   name: string
   bio: string | null
+  logoUrl: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    imageUrl: string | null
     areas: string[]
     priceMin: number | null
     priceMax: number | null
@@ -33,9 +36,12 @@ export default function VendorDetailPage() {
     budgetRangeMax: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [planBoardSlots, setPlanBoardSlots] = useState<Array<{ id: string; category: { id: string; name: string } }>>([])
+  const [addingToPlanBoard, setAddingToPlanBoard] = useState(false)
 
   useEffect(() => {
     loadVendor()
+    loadPlanBoardSlots()
   }, [params.id])
 
   const loadVendor = async () => {
@@ -50,6 +56,53 @@ export default function VendorDetailPage() {
       console.error('Failed to load vendor:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadPlanBoardSlots = async () => {
+    try {
+      const res = await fetch('/api/plan-board')
+      if (res.status === 401) {
+        // ログインしていない場合はスロットを表示しない
+        return
+      }
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.planBoard?.slots) {
+        setPlanBoardSlots(data.planBoard.slots)
+      }
+    } catch (error) {
+      // エラーは無視（ログインしていない場合など）
+    }
+  }
+
+  const handleAddToPlanBoard = async (slotId: string) => {
+    if (!vendor) return
+    setAddingToPlanBoard(true)
+    try {
+      const res = await fetch(`/api/plan-board/slots/${slotId}/candidates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId: vendor.id }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        if (res.status === 401) {
+          router.push('/couple/login')
+          return
+        }
+        alert(data.error || 'PlanBoardへの追加に失敗しました')
+        return
+      }
+
+      alert('PlanBoardに追加しました')
+      router.push('/couple/plan')
+    } catch (error) {
+      console.error('Failed to add to plan board:', error)
+      alert('PlanBoardへの追加に失敗しました')
+    } finally {
+      setAddingToPlanBoard(false)
     }
   }
 
@@ -102,7 +155,7 @@ export default function VendorDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">読み込み中...</div>
+        <div className="text-gray-600 text-sm">読み込み中...</div>
       </div>
     )
   }
@@ -110,15 +163,43 @@ export default function VendorDetailPage() {
   if (!vendor) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600">ベンダーが見つかりません</div>
+        <div className="text-red-600 text-sm">ベンダーが見つかりません</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">{vendor.name}</h1>
+    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <Header />
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* ヘッダーセクション（プロフィール画像とロゴ） */}
+        <div className="mb-6">
+          {vendor.profile?.imageUrl && (
+            <img
+              src={vendor.profile.imageUrl}
+              alt={vendor.name}
+              className="w-full h-80 object-cover rounded-lg mb-4 shadow-md"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
+              }}
+            />
+          )}
+          <div className="flex items-center gap-4">
+            {vendor.logoUrl && (
+              <img
+                src={vendor.logoUrl}
+                alt={`${vendor.name}ロゴ`}
+                className="w-24 h-24 object-cover rounded-full border-4 border-pink-200 shadow-md"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
+            )}
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{vendor.name}</h1>
+          </div>
+        </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
@@ -133,6 +214,10 @@ export default function VendorDetailPage() {
                       src={image.imageUrl}
                       alt={image.caption || vendor.name}
                       className="w-full h-48 object-cover rounded"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
                     />
                   ))}
                 </div>
@@ -211,6 +296,41 @@ export default function VendorDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* PlanBoardに追加 */}
+            {planBoardSlots.length > 0 && vendor && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">PlanBoardに追加</h2>
+                <p className="text-sm text-gray-600 mb-3">
+                  このベンダーをPlanBoardの候補として追加できます
+                </p>
+                <div className="space-y-2">
+                  {vendor.categories.map((vc) => {
+                    const slot = planBoardSlots.find(
+                      (s) => s.category.name === vc.category.name
+                    )
+                    if (!slot) return null
+                    return (
+                      <button
+                        key={slot.id}
+                        onClick={() => handleAddToPlanBoard(slot.id)}
+                        disabled={addingToPlanBoard}
+                        className="w-full px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 disabled:opacity-50 transition-colors text-sm"
+                      >
+                        {addingToPlanBoard ? '追加中...' : `${vc.category.name}に追加`}
+                      </button>
+                    )
+                  })}
+                </div>
+                {vendor.categories.every(
+                  (vc) => !planBoardSlots.find((s) => s.category.name === vc.category.name)
+                ) && (
+                  <p className="text-sm text-gray-500">
+                    このベンダーのカテゴリに対応するスロットがありません
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* 問い合わせフォーム */}
             <div className="bg-white rounded-lg shadow-md p-6">

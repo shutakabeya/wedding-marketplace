@@ -13,7 +13,7 @@ export async function GET() {
       )
     }
 
-    let planBoard = await prisma.planBoard.findUnique({
+    let planBoardData = await prisma.planBoard.findUnique({
       where: { coupleId: session.id },
       include: {
         slots: {
@@ -21,14 +21,20 @@ export async function GET() {
             category: true,
             selectedVendor: {
               include: {
-                profile: true,
+                profiles: {
+                  where: { isDefault: true },
+                  take: 1,
+                },
               },
             },
             candidates: {
               include: {
                 vendor: {
                   include: {
-                    profile: true,
+                    profiles: {
+                      where: { isDefault: true },
+                      take: 1,
+                    },
                   },
                 },
               },
@@ -39,8 +45,8 @@ export async function GET() {
     })
 
     // 存在しない場合は作成
-    if (!planBoard) {
-      planBoard = await prisma.planBoard.create({
+    if (!planBoardData) {
+      planBoardData = await prisma.planBoard.create({
         data: {
           coupleId: session.id,
           slots: {
@@ -58,14 +64,20 @@ export async function GET() {
               category: true,
               selectedVendor: {
                 include: {
-                  profile: true,
+                  profiles: {
+                    where: { isDefault: true },
+                    take: 1,
+                  },
                 },
               },
               candidates: {
                 include: {
                   vendor: {
                     include: {
-                      profile: true,
+                      profiles: {
+                        where: { isDefault: true },
+                        take: 1,
+                      },
                     },
                   },
                 },
@@ -74,6 +86,27 @@ export async function GET() {
           },
         },
       })
+    }
+
+    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    const planBoard = {
+      ...planBoardData,
+      slots: planBoardData.slots.map((slot: any) => ({
+        ...slot,
+        selectedVendor: slot.selectedVendor
+          ? {
+              ...slot.selectedVendor,
+              profile: slot.selectedVendor.profiles[0] || null,
+            }
+          : null,
+        candidates: slot.candidates.map((candidate: any) => ({
+          ...candidate,
+          vendor: {
+            ...candidate.vendor,
+            profile: candidate.vendor.profiles[0] || null,
+          },
+        })),
+      })),
     }
 
     // 予算合計計算
