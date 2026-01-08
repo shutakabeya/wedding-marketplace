@@ -173,13 +173,13 @@ export async function PATCH(request: NextRequest) {
       if (data.categoryIds !== undefined) {
         // 既存のプロフィールカテゴリを削除
         await prisma.vendorProfileCategory.deleteMany({
-          where: { profileId: defaultProfile.id },
+          where: { profileId: defaultProfile!.id },
         })
         // 新しいプロフィールカテゴリを追加
         if (data.categoryIds.length > 0) {
           await prisma.vendorProfileCategory.createMany({
             data: data.categoryIds.map((categoryId) => ({
-              profileId: defaultProfile.id,
+              profileId: defaultProfile!.id,
               categoryId,
             })),
           })

@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
         // カテゴリフィルタが指定されている場合、プロフィールのcategoriesでチェック
         if (targetCategoryName) {
           const hasCategory = profile.categories?.some(
-            (pc) => pc.category.name === targetCategoryName
+            (pc: { category: { name: string } }) => pc.category.name === targetCategoryName
           )
           if (!hasCategory) {
             continue
