@@ -157,10 +157,35 @@ export async function PATCH(request: NextRequest) {
           styleTags: data.styleTags || [],
           services: data.services,
           constraints: data.constraints,
+          // プロフィールのカテゴリを設定（ベンダーのカテゴリと同じ）
+          categories: data.categoryIds && data.categoryIds.length > 0
+            ? {
+                create: data.categoryIds.map((categoryId) => ({
+                  categoryId,
+                })),
+              }
+            : undefined,
         },
       })
     } else {
       // 既存のデフォルトプロフィールを更新
+      // プロフィールのカテゴリを更新（指定されている場合）
+      if (data.categoryIds !== undefined) {
+        // 既存のプロフィールカテゴリを削除
+        await prisma.vendorProfileCategory.deleteMany({
+          where: { profileId: defaultProfile.id },
+        })
+        // 新しいプロフィールカテゴリを追加
+        if (data.categoryIds.length > 0) {
+          await prisma.vendorProfileCategory.createMany({
+            data: data.categoryIds.map((categoryId) => ({
+              profileId: defaultProfile.id,
+              categoryId,
+            })),
+          })
+        }
+      }
+
       // undefinedの値を除外して、実際に更新する値のみを送信
       const updateData: any = {}
       if (data.categoryType !== undefined) updateData.categoryType = data.categoryType

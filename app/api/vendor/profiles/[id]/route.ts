@@ -9,6 +9,7 @@ const updateProfileSchema = z.object({
   profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
   categoryType: z.enum(['venue', 'photographer', 'dress', 'planner', 'other']).optional(),
+  categoryIds: z.array(z.string().uuid()).optional(), // カテゴリIDを追加
   maxGuests: z.number().optional().nullable(),
   serviceTags: z.array(z.string()).optional(),
   priceMin: z.number().optional().nullable(),
@@ -48,6 +49,13 @@ export async function GET(
       where: {
         id,
         vendorId: session.id,
+      },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
       },
     })
 
@@ -119,6 +127,23 @@ export async function PATCH(
           isDefault: false,
         },
       })
+    }
+
+    // プロフィールのカテゴリを更新（指定されている場合）
+    if (data.categoryIds !== undefined) {
+      // 既存のプロフィールカテゴリを削除
+      await prisma.vendorProfileCategory.deleteMany({
+        where: { profileId: id },
+      })
+      // 新しいプロフィールカテゴリを追加
+      if (data.categoryIds.length > 0) {
+        await prisma.vendorProfileCategory.createMany({
+          data: data.categoryIds.map((categoryId) => ({
+            profileId: id,
+            categoryId,
+          })),
+        })
+      }
     }
 
     // undefinedの値を除外して、実際に更新する値のみを送信

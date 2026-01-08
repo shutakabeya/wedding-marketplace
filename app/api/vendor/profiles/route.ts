@@ -9,6 +9,7 @@ const createProfileSchema = z.object({
   profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
   categoryType: z.enum(['venue', 'photographer', 'dress', 'planner', 'other']).optional(),
+  categoryIds: z.array(z.string().uuid()).optional(), // カテゴリIDを追加
   maxGuests: z.number().optional().nullable(),
   serviceTags: z.array(z.string()).optional(),
   priceMin: z.number().optional().nullable(),
@@ -57,6 +58,13 @@ export async function GET() {
         { isDefault: 'desc' },
         { createdAt: 'asc' },
       ],
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     })
 
     return NextResponse.json({ profiles })
@@ -119,6 +127,14 @@ export async function POST(request: NextRequest) {
         services: data.services,
         constraints: data.constraints,
         isDefault: data.isDefault || false,
+        // プロフィールごとのカテゴリを設定
+        categories: data.categoryIds && data.categoryIds.length > 0
+          ? {
+              create: data.categoryIds.map((categoryId) => ({
+                categoryId,
+              })),
+            }
+          : undefined,
       },
     })
 

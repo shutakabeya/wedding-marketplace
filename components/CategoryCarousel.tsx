@@ -19,7 +19,9 @@ interface Vendor {
     maxGuests: number | null
     serviceTags: string[]
     styleTags: string[]
+    services: string | null // 提供内容
   } | null
+  profileId?: string // プロフィールID
   gallery: Array<{ imageUrl: string }>
 }
 
@@ -165,19 +167,19 @@ function VendorCard({ vendor, index }: VendorCardProps) {
   const isVenue = vendor.profile?.categoryType === 'venue'
   const locationLabel = isVenue ? '所在地' : 'エリア'
 
-  // 紹介文が3行以上かどうかを判定
+  // 提供内容が3行以上かどうかを判定
   useEffect(() => {
-    if (bioRef.current && vendor.bio) {
+    if (bioRef.current && vendor.profile?.services) {
       const lineHeight = parseFloat(getComputedStyle(bioRef.current).lineHeight)
       const maxHeight = lineHeight * 3 // 3行分の高さ
       const actualHeight = bioRef.current.scrollHeight
       setShowReadMore(actualHeight > maxHeight)
     }
-  }, [vendor.bio])
+  }, [vendor.profile?.services])
 
   return (
     <Link
-      href={`/vendors/${vendor.id}`}
+      href={`/vendors/${vendor.id}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`}
       className="min-w-[320px] max-w-[320px] bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] transition-all duration-300 snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 border border-gray-100 group"
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -309,18 +311,18 @@ function VendorCard({ vendor, index }: VendorCardProps) {
           </div>
         )}
 
-        {/* 紹介文 */}
-        {vendor.bio && (
+        {/* 提供内容（プロフィールのservices） */}
+        {vendor.profile?.services && (
           <div className="mt-3 pt-3 border-t border-gray-100">
             <p ref={bioRef} className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
-              {vendor.bio}
+              {vendor.profile.services}
             </p>
             {showReadMore && (
               <button
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  window.location.href = `/vendors/${vendor.id}`
+                  window.location.href = `/vendors/${vendor.id}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`
                 }}
                 className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline mt-2 transition-colors"
               >

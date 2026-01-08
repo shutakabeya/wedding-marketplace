@@ -20,35 +20,43 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // カテゴリフィルタ
-    if (categoryName) {
-      where.categories = {
-        some: {
-          category: {
-            name: categoryName,
-          },
-        },
-      }
-    }
+    // カテゴリフィルタ（ベンダーのcategoriesでフィルタリングするため、ここでは記録のみ）
+    const targetCategoryName = categoryName || null
 
-    // エリアフィルタ
+    // プロフィールがあるベンダーのみを表示
+    // エリアフィルタと価格フィルタもここで適用
+    const profileFilter: any = {}
+    
     if (area) {
-      where.profile = {
-        areas: {
-          has: area,
-        },
+      profileFilter.areas = {
+        has: area,
       }
     }
 
-    // 価格フィルタ
     if (priceMin || priceMax) {
-      where.profile = {
-        ...where.profile,
-        OR: [
-          { priceMin: { lte: priceMax ? parseInt(priceMax) : undefined } },
-          { priceMax: { gte: priceMin ? parseInt(priceMin) : undefined } },
-        ],
+      const priceConditions: any[] = []
+      if (priceMin) {
+        priceConditions.push({
+          priceMax: {
+            gte: parseInt(priceMin),
+          },
+        })
       }
+      if (priceMax) {
+        priceConditions.push({
+          priceMin: {
+            lte: parseInt(priceMax),
+          },
+        })
+      }
+      if (priceConditions.length > 0) {
+        profileFilter.OR = priceConditions
+      }
+    }
+
+    // プロフィールが存在するベンダーのみを取得（カテゴリフィルタはプロフィール展開後に適用）
+    where.profiles = {
+      some: Object.keys(profileFilter).length > 0 ? profileFilter : {},
     }
 
     // ソート
@@ -85,6 +93,13 @@ export async function GET(request: NextRequest) {
                   { isDefault: 'desc' }, // デフォルトを優先
                   { createdAt: 'desc' }, // 作成日時順
                 ],
+                include: {
+                  categories: {
+                    include: {
+                      category: true,
+                    },
+                  },
+                },
               },
               gallery: {
                 take: 1,
@@ -117,22 +132,50 @@ export async function GET(request: NextRequest) {
     // 各プロフィールを個別の出品として展開
     const allVendors: any[] = []
     for (const vendor of vendorsData) {
+      // プロフィールがないベンダーは表示しない
       if (vendor.profiles.length === 0) {
-        // プロフィールがない場合は、ベンダー情報のみを返す（互換性のため）
+        continue
+      }
+
+      // 各プロフィールを個別の出品として追加
+      for (const profile of vendor.profiles) {
+        // カテゴリフィルタが指定されている場合、プロフィールのcategoriesでチェック
+        if (targetCategoryName) {
+          const hasCategory = profile.categories?.some(
+            (pc) => pc.category.name === targetCategoryName
+          )
+          if (!hasCategory) {
+            continue
+          }
+        }
+
+        // エリアフィルタが指定されている場合、プロフィールのエリアをチェック
+        if (area && !profile.areas.includes(area)) {
+          continue
+        }
+
+        // 価格フィルタが指定されている場合、プロフィールの価格をチェック
+        if (priceMin || priceMax) {
+          const profilePriceMin = profile.priceMin
+          const profilePriceMax = profile.priceMax
+          const minPrice = priceMin ? parseInt(priceMin) : undefined
+          const maxPrice = priceMax ? parseInt(priceMax) : undefined
+
+          // 価格範囲が一致しない場合はスキップ
+          if (minPrice && profilePriceMax && profilePriceMax < minPrice) {
+            continue
+          }
+          if (maxPrice && profilePriceMin && profilePriceMin > maxPrice) {
+            continue
+          }
+        }
+
         allVendors.push({
           ...vendor,
-          profile: null,
+          profile: profile,
+          // プロフィールIDを追加（必要に応じて）
+          profileId: profile.id,
         })
-      } else {
-        // 各プロフィールを個別の出品として追加
-        for (const profile of vendor.profiles) {
-          allVendors.push({
-            ...vendor,
-            profile: profile,
-            // プロフィールIDを追加（必要に応じて）
-            profileId: profile.id,
-          })
-        }
       }
     }
 

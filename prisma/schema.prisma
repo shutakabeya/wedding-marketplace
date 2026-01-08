@@ -18,6 +18,7 @@ model Category {
   createdAt     DateTime @default(now()) @map("created_at")
   
   vendors       VendorCategory[]
+  profiles      VendorProfileCategory[] // プロフィールカテゴリ
   inquiries     Inquiry[]
   planSlots     PlanBoardSlot[]
   
@@ -108,9 +109,22 @@ model VendorProfile {
   updatedAt     DateTime @updatedAt @map("updated_at")
   
   vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categories    VendorProfileCategory[] // プロフィールごとのカテゴリ
   
   @@map("vendor_profiles")
   @@index([vendorId])
+}
+
+// プロフィールカテゴリ（プロフィールごとのカテゴリ）
+model VendorProfileCategory {
+  profileId    String   @map("profile_id")
+  categoryId  String   @map("category_id")
+  
+  profile      VendorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@id([profileId, categoryId])
+  @@map("vendor_profile_categories")
 }
 
 // ベンダーギャラリー

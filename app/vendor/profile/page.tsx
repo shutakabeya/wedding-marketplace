@@ -268,6 +268,7 @@ export default function VendorProfilePage() {
         styleTags: formData.styleTags,
         services: formData.services || null,
         constraints: formData.constraints || null,
+        categoryIds: formData.categoryIds, // カテゴリIDを追加
         plans: formData.plans
           .filter((p) => p.name.trim() && p.price.trim())
           .map((p) => ({

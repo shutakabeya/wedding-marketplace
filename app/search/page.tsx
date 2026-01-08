@@ -22,6 +22,7 @@ interface Vendor {
     services: string | null
     constraints: string | null
   } | null
+  profileId?: string // プロフィールID
   gallery: Array<{ imageUrl: string }>
 }
 
@@ -175,7 +176,7 @@ function SearchContent() {
               return (
                 <Link
                   key={vendor.id}
-                  href={`/vendors/${vendor.id}`}
+                  href={`/vendors/${vendor.id}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`}
                   className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 border border-gray-100 group fade-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
@@ -282,11 +283,11 @@ function SearchContent() {
                         )}
                       </div>
 
-                      {/* 右側：紹介文（PC版のみ） */}
-                      {vendor.bio && (
+                      {/* 右側：提供内容（PC版のみ） */}
+                      {vendor.profile?.services && (
                         <div className="md:w-80 md:flex-shrink-0 md:border-l md:border-gray-200 md:pl-6">
                           <p className="text-sm text-gray-600 line-clamp-4 md:line-clamp-none leading-relaxed">
-                            {vendor.bio}
+                            {vendor.profile.services}
                           </p>
                         </div>
                       )}

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 
 interface Vendor {
@@ -23,9 +23,11 @@ interface Vendor {
   gallery: Array<{ id: string; imageUrl: string; caption: string | null }>
 }
 
-export default function VendorDetailPage() {
+function VendorDetailContent() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const profileId = searchParams.get('profileId')
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
   const [inquiryForm, setInquiryForm] = useState({
@@ -44,11 +46,14 @@ export default function VendorDetailPage() {
   useEffect(() => {
     loadVendor()
     loadPlanBoardSlots()
-  }, [params.id])
+  }, [params.id, profileId])
 
   const loadVendor = async () => {
     try {
-      const res = await fetch(`/api/vendors/${params.id}`)
+      const url = profileId 
+        ? `/api/vendors/${params.id}?profileId=${profileId}`
+        : `/api/vendors/${params.id}`
+      const res = await fetch(url)
       if (!res.ok) {
         throw new Error('ベンダーが見つかりません')
       }
@@ -207,11 +212,13 @@ export default function VendorDetailPage() {
               </div>
             )}
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">{vendor.name}</h1>
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">
+                {vendor.profile?.name || vendor.name}
+              </h1>
               {vendor.profile?.name && (
-                <p className="text-lg text-gray-600 mb-3">
-                  <span className="font-semibold text-gray-700">出品名：</span>
-                  {vendor.profile.name}
+                <p className="text-sm text-gray-500 mb-3">
+                  <span className="font-semibold text-gray-600">屋号：</span>
+                  {vendor.name}
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -291,7 +298,7 @@ export default function VendorDetailPage() {
 
           <div className="space-y-6">
             {/* 基本情報 */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 sticky top-24 fade-in">
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報</h2>
               <div className="space-y-4">
                 <div className="pb-4 border-b border-gray-100">
@@ -517,5 +524,17 @@ export default function VendorDetailPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function VendorDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600 text-sm">読み込み中...</div>
+      </div>
+    }>
+      <VendorDetailContent />
+    </Suspense>
   )
 }

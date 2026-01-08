@@ -7,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const searchParams = request.nextUrl.searchParams
+    const profileId = searchParams.get('profileId')
 
     const vendorData = await prisma.vendor.findUnique({
       where: { id },
@@ -17,7 +19,10 @@ export async function GET(
           },
         },
         profiles: {
-          where: { isDefault: true },
+          // プロフィールIDが指定されている場合は該当プロフィール、そうでなければデフォルトプロフィール
+          where: profileId 
+            ? { id: profileId }
+            : { isDefault: true },
           take: 1,
         },
         gallery: {
@@ -33,7 +38,15 @@ export async function GET(
       )
     }
 
-    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    // プロフィールIDが指定されているが、該当プロフィールが見つからない場合
+    if (profileId && vendorData.profiles.length === 0) {
+      return NextResponse.json(
+        { error: 'プロフィールが見つかりません' },
+        { status: 404 }
+      )
+    }
+
+    // 指定されたプロフィールまたはデフォルトプロフィールを返す
     const vendor = {
       ...vendorData,
       profile: vendorData.profiles[0] || null,
