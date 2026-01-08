@@ -5,10 +5,11 @@ import Link from 'next/link'
 
 interface Vendor {
   id: string
-  name: string
+  name: string // 屋号
   bio: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    name: string | null // 出品名（プラン名）
     priceMin: number | null
     priceMax: number | null
     areas: string[]
@@ -248,7 +249,9 @@ function VendorCard({ vendor, index }: VendorCardProps) {
         )}
       </div>
       <div className="p-6">
-        <h4 className="text-xl font-bold mb-3 text-gray-900 line-clamp-1 group-hover:text-pink-600 transition-colors">{vendor.name}</h4>
+        <h4 className="text-xl font-bold mb-3 text-gray-900 line-clamp-1 group-hover:text-pink-600 transition-colors">
+          {vendor.profile?.name || vendor.name}
+        </h4>
         
         {/* 価格 */}
         {vendor.profile?.priceMin && (

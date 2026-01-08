@@ -6,11 +6,12 @@ import { Header } from '@/components/Header'
 
 interface Vendor {
   id: string
-  name: string
+  name: string // 屋号
   bio: string | null
   logoUrl: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    name: string | null // 出品名（プラン名）
     imageUrl: string | null
     areas: string[]
     priceMin: number | null
@@ -207,6 +208,12 @@ export default function VendorDetailPage() {
             )}
             <div>
               <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">{vendor.name}</h1>
+              {vendor.profile?.name && (
+                <p className="text-lg text-gray-600 mb-3">
+                  <span className="font-semibold text-gray-700">出品名：</span>
+                  {vendor.profile.name}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {vendor.categories.map((c) => (
                   <span key={c.category.name} className="px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 rounded-full text-sm font-medium border border-pink-200">

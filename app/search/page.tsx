@@ -7,11 +7,12 @@ import { Header } from '@/components/Header'
 
 interface Vendor {
   id: string
-  name: string
+  name: string // 屋号
   bio: string | null
   logoUrl: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    name: string | null // 出品名（プラン名）
     imageUrl: string | null
     profileImages: string[]
     priceMin: number | null
@@ -223,7 +224,7 @@ function SearchContent() {
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
-                              {vendor.name}
+                              {vendor.profile?.name || vendor.name}
                             </h3>
                             <div className="flex flex-wrap gap-2 mb-3">
                               {vendor.categories.map((c) => (

@@ -11,16 +11,24 @@ interface PlanBoardSlot {
   state: 'unselected' | 'candidate' | 'selected' | 'skipped'
   selectedVendor: {
     id: string
-    name: string
-    profile: { priceMin: number; priceMax: number } | null
+    name: string // 屋号
+    profile: {
+      name: string | null // 出品名（プラン名）
+      priceMin: number | null
+      priceMax: number | null
+    } | null
   } | null
   estimatedCost: number | null
   note: string | null
   candidates: Array<{
     vendor: {
       id: string
-      name: string
-      profile: { priceMin: number; priceMax: number } | null
+      name: string // 屋号
+      profile: {
+        name: string | null // 出品名（プラン名）
+        priceMin: number | null
+        priceMax: number | null
+      } | null
     }
   }>
 }
@@ -357,7 +365,12 @@ export default function PlanBoardPage() {
                 <div className="mb-4 p-4 bg-white rounded-lg border border-green-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="font-semibold text-gray-900 mb-1">{slot.selectedVendor.name}</div>
+                      <div className="font-semibold text-gray-900 mb-1">
+                        {slot.selectedVendor.profile?.name || slot.selectedVendor.name}
+                      </div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        屋号: {slot.selectedVendor.name}
+                      </div>
                       {slot.selectedVendor.profile && (
                         <div className="text-sm text-gray-600">
                           {slot.selectedVendor.profile.priceMin && (
@@ -387,7 +400,12 @@ export default function PlanBoardPage() {
                       <div key={candidate.vendor.id} className="p-3 bg-white rounded-lg border border-yellow-200">
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-medium text-gray-900">{candidate.vendor.name}</div>
+                            <div className="font-medium text-gray-900">
+                              {candidate.vendor.profile?.name || candidate.vendor.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              屋号: {candidate.vendor.name}
+                            </div>
                             {candidate.vendor.profile && (
                               <div className="text-sm text-gray-600">
                                 {candidate.vendor.profile.priceMin && (
