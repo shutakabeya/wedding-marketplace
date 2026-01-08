@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
 
     while (retries < maxRetries) {
       try {
+        // まず、すべてのベンダーとプロフィールを取得（ページネーションは後で適用）
         [vendorsData, total] = await Promise.all([
           prisma.vendor.findMany({
             where,
@@ -79,8 +80,11 @@ export async function GET(request: NextRequest) {
                 },
               },
               profiles: {
-                where: { isDefault: true },
-                take: 1,
+                // すべてのプロフィールを取得（デフォルト以外も含む）
+                orderBy: [
+                  { isDefault: 'desc' }, // デフォルトを優先
+                  { createdAt: 'desc' }, // 作成日時順
+                ],
               },
               gallery: {
                 take: 1,
@@ -88,8 +92,7 @@ export async function GET(request: NextRequest) {
               },
             },
             orderBy,
-            skip: (page - 1) * limit,
-            take: limit,
+            // ページネーションはプロフィール展開後に適用するため、ここでは取得しない
           }),
           prisma.vendor.count({ where }),
         ])
@@ -111,19 +114,39 @@ export async function GET(request: NextRequest) {
       total = 0
     }
 
-    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
-    const vendors = vendorsData.map((vendor) => ({
-      ...vendor,
-      profile: vendor.profiles[0] || null,
-    }))
+    // 各プロフィールを個別の出品として展開
+    const allVendors: any[] = []
+    for (const vendor of vendorsData) {
+      if (vendor.profiles.length === 0) {
+        // プロフィールがない場合は、ベンダー情報のみを返す（互換性のため）
+        allVendors.push({
+          ...vendor,
+          profile: null,
+        })
+      } else {
+        // 各プロフィールを個別の出品として追加
+        for (const profile of vendor.profiles) {
+          allVendors.push({
+            ...vendor,
+            profile: profile,
+            // プロフィールIDを追加（必要に応じて）
+            profileId: profile.id,
+          })
+        }
+      }
+    }
+
+    // プロフィール展開後にページネーションを適用
+    const actualTotal = allVendors.length
+    const vendors = allVendors.slice((page - 1) * limit, page * limit)
 
     return NextResponse.json({
       vendors,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        total: actualTotal,
+        totalPages: Math.ceil(actualTotal / limit),
       },
     })
   } catch (error) {

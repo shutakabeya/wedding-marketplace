@@ -166,6 +166,8 @@ export default function VendorProfilePage() {
       })
       setEditingProfileId(profileId)
       setShowForm(true)
+      // ページ先頭までスクロール
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
       console.error('Failed to load profile for edit:', error)
       alert('プロフィールの取得に失敗しました')
@@ -175,6 +177,8 @@ export default function VendorProfilePage() {
   const startNewProfile = () => {
     resetForm()
     setShowForm(true)
+    // ページ先頭までスクロール
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleImageUpload = async (file: File, type: 'logo' | 'profile', index?: number) => {
