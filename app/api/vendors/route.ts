@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 接続プールタイムアウトを防ぐため、リトライロジックを追加
-    let vendorsData, total
+    let vendorsData: any[] | undefined
+    let total: number | undefined
     let retries = 0
     const maxRetries = 3
 
@@ -102,6 +103,12 @@ export async function GET(request: NextRequest) {
         }
         throw error // それ以外のエラーまたは最大リトライ回数に達した場合は再スロー
       }
+    }
+
+    // リトライが失敗した場合のフォールバック
+    if (!vendorsData || total === undefined) {
+      vendorsData = []
+      total = 0
     }
 
     // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
