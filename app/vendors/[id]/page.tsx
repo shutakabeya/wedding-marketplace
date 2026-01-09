@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
+import { getDisplayName } from '@/lib/areas'
 
 interface Vendor {
   id: string
@@ -14,12 +15,13 @@ interface Vendor {
     name: string | null // 出品名（プラン名）
     imageUrl: string | null
     profileImages: string[]
-    areas: string[]
+    areas: string[] // エリアIDまたはグループIDの配列
     priceMin: number | null
     priceMax: number | null
     styleTags: string[]
     services: string | null
     constraints: string | null
+    categoryType: string | null
   } | null
   gallery: Array<{ id: string; imageUrl: string; caption: string | null }>
 }
@@ -399,9 +401,11 @@ function VendorDetailContent() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      対応エリア
+                      {vendor.profile.categoryType === 'venue' ? '所在地' : '対応エリア'}
                     </div>
-                    <div className="font-semibold text-gray-900">{vendor.profile.areas.join(', ')}</div>
+                    <div className="font-semibold text-gray-900">
+                      {vendor.profile.areas.map((areaId) => getDisplayName(areaId)).join(', ')}
+                    </div>
                   </div>
                 )}
                 {vendor.profile && (

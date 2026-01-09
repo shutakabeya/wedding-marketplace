@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
+import { ALL_SELECTABLE_AREAS, getDisplayName } from '@/lib/areas'
 
 interface Vendor {
   id: string
@@ -45,8 +46,7 @@ export default function VendorProfilePage() {
     bio: '',
     logoUrl: '',
     categoryIds: [] as string[],
-    areas: [] as string[],
-    areaInput: '',
+    selectedAreaIds: [] as string[], // エリアマスタから選択されたID（エリアIDまたはグループID）
     priceMin: '',
     priceMax: '',
     styleTags: [] as string[],
@@ -114,8 +114,7 @@ export default function VendorProfilePage() {
       bio: currentVendor?.bio || '',
       logoUrl: currentVendor?.logoUrl || '',
       categoryIds: currentVendor?.categories?.map((c: any) => c.category.id) || [],
-      areas: [],
-      areaInput: '',
+      selectedAreaIds: [],
       priceMin: '',
       priceMax: '',
       styleTags: [],
@@ -164,8 +163,7 @@ export default function VendorProfilePage() {
         bio: vendorData?.bio || '',
         logoUrl: vendorData?.logoUrl || '',
         categoryIds: profileCategoryIds.length > 0 ? profileCategoryIds : (vendorData?.categories?.map((c: any) => c.category.id) || []),
-        areas: profile.areas || [],
-        areaInput: '',
+        selectedAreaIds: profile.areas || [], // 既存データはそのまま（エリアIDまたはエリア名の可能性がある）
         priceMin: profile.priceMin?.toString() || '',
         priceMax: profile.priceMax?.toString() || '',
         styleTags: profile.styleTags || [],
@@ -293,7 +291,7 @@ export default function VendorProfilePage() {
         logoUrl: formData.logoUrl || null, // ロゴ（vendors.logoUrl）
         imageUrl: formData.profileImages[0] || null,
         profileImages: formData.profileImages,
-        areas: formData.areas,
+        areas: formData.selectedAreaIds, // エリアIDまたはグループIDの配列
         categoryType: formData.categoryType,
         maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : null,
         serviceTags: formData.serviceTags,
@@ -357,20 +355,12 @@ export default function VendorProfilePage() {
     }
   }
 
-  const addArea = () => {
-    if (formData.areaInput.trim() && !formData.areas.includes(formData.areaInput.trim())) {
-      setFormData({
-        ...formData,
-        areas: [...formData.areas, formData.areaInput.trim()],
-        areaInput: '',
-      })
-    }
-  }
-
-  const removeArea = (area: string) => {
+  const toggleArea = (areaId: string) => {
     setFormData({
       ...formData,
-      areas: formData.areas.filter((a) => a !== area),
+      selectedAreaIds: formData.selectedAreaIds.includes(areaId)
+        ? formData.selectedAreaIds.filter((id) => id !== areaId)
+        : [...formData.selectedAreaIds, areaId],
     })
   }
 
@@ -679,45 +669,80 @@ export default function VendorProfilePage() {
             <h2 className="text-xl font-semibold mb-4">
               {formData.categoryType === 'venue' ? '所在地' : '対応エリア'}
             </h2>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={formData.areaInput}
-                onChange={(e) => setFormData({ ...formData, areaInput: e.target.value })}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addArea()
-                  }
-                }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                placeholder={formData.categoryType === 'venue' ? '例: 東京都渋谷区' : '例: 東京都'}
-              />
-              <button
-                type="button"
-                onClick={addArea}
-                className="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700"
-              >
-                追加
-              </button>
+            <p className="text-sm text-gray-600 mb-4">
+              {formData.categoryType === 'venue' 
+                ? '会場の所在地を選択してください（複数選択可）'
+                : '対応エリアを選択してください（複数選択可）。全国、関東などの地域グループも選択できます。'}
+            </p>
+            
+            {/* エリアマスタ選択UI */}
+            <div className="space-y-4">
+              {/* グループ（全国、関東など） */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">地域グループ</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_SELECTABLE_AREAS.filter((a) => a.type === 'group').map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => toggleArea(area.id)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        formData.selectedAreaIds.includes(area.id)
+                          ? 'bg-pink-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {area.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 個別エリア（都道府県） */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">都道府県</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_SELECTABLE_AREAS.filter((a) => a.type === 'area').map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => toggleArea(area.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        formData.selectedAreaIds.includes(area.id)
+                          ? 'bg-pink-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {area.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.areas.map((area) => (
-                <span
-                  key={area}
-                  className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm flex items-center gap-2"
-                >
-                  {area}
-                  <button
-                    type="button"
-                    onClick={() => removeArea(area)}
-                    className="text-pink-700 hover:text-pink-900"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
+
+            {/* 選択済みエリアの表示 */}
+            {formData.selectedAreaIds.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm font-semibold text-gray-700 mb-2">選択済み:</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.selectedAreaIds.map((areaId) => (
+                    <span
+                      key={areaId}
+                      className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm flex items-center gap-2"
+                    >
+                      {getDisplayName(areaId)}
+                      <button
+                        type="button"
+                        onClick={() => toggleArea(areaId)}
+                        className="text-pink-700 hover:text-pink-900"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 料金プラン */}

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
+import { ALL_SELECTABLE_AREAS, getDisplayName } from '@/lib/areas'
 
 interface Vendor {
   id: string
@@ -173,7 +174,7 @@ function SearchResultCard({ vendor, allProfileImages, index }: SearchResultCardP
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {vendor.profile.areas.join(', ')}
+                    {vendor.profile.areas.map((areaId) => getDisplayName(areaId)).join(', ')}
                   </span>
                 )}
               </div>
@@ -296,13 +297,27 @@ function SearchContent() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 エリア
               </label>
-              <input
-                type="text"
+              <select
                 value={filters.area}
                 onChange={(e) => setFilters({ ...filters, area: e.target.value })}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                placeholder="例: 東京都"
-              />
+              >
+                <option value="">すべて</option>
+                <optgroup label="地域グループ">
+                  {ALL_SELECTABLE_AREAS.filter((a) => a.type === 'group').map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="都道府県">
+                  {ALL_SELECTABLE_AREAS.filter((a) => a.type === 'area').map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { getMatchingAreaIds, getDisplayName } from '@/lib/areas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,10 +28,35 @@ export async function GET(request: NextRequest) {
     // エリアフィルタ、価格フィルタ、カテゴリフィルタもここで適用
     const profileFilter: any = {}
     
+    // エリアフィルタ：エリアマスタベースの検索（既存データとの互換性を保つ）
+    // 既存データは自由入力の文字列（例: "東京都"）、新規データはエリアID（例: "tokyo"）
     if (area) {
-      profileFilter.areas = {
-        has: area,
-      }
+      // エリアマスタからマッチするエリアID/グループIDを取得
+      // 例: 'chiba' を検索 → ['chiba', 'kanto', 'zenkoku'] を返す
+      const matchingAreaIds = getMatchingAreaIds(area)
+      
+      // エリアマスタベースの検索（新規データ）と既存データ（自由入力）の両方に対応
+      // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
+      profileFilter.OR = [
+        // エリアマスタベースの検索（新規データ）
+        {
+          areas: {
+            hasSome: matchingAreaIds,
+          },
+        },
+        // 既存データ（自由入力）との互換性：エリア名で検索
+        {
+          areas: {
+            has: getDisplayName(area), // エリアIDからエリア名に変換して検索
+          },
+        },
+        // エリアIDそのものでも検索（念のため）
+        {
+          areas: {
+            has: area,
+          },
+        },
+      ]
     }
 
     if (priceMin || priceMax) {
@@ -195,8 +221,21 @@ export async function GET(request: NextRequest) {
         // カテゴリフィルタはデータベースクエリで適用済みのため、ここでは不要
         
         // エリアフィルタが指定されている場合、念のため再チェック（クエリの条件と一致するはず）
-        if (area && !profile.areas.includes(area)) {
-          continue
+        // エリアマスタベースの検索と既存データ（自由入力）の両方に対応
+        if (area) {
+          const matchingAreaIds = getMatchingAreaIds(area)
+          const areaDisplayName = getDisplayName(area)
+          
+          // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
+          const hasMatchingArea = profile.areas.some((profileAreaId) => 
+            matchingAreaIds.includes(profileAreaId) || 
+            profileAreaId === areaDisplayName ||
+            profileAreaId === area
+          )
+          
+          if (!hasMatchingArea) {
+            continue
+          }
         }
 
         // 価格フィルタが指定されている場合、念のため再チェック（クエリの条件と一致するはず）

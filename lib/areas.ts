@@ -1,0 +1,167 @@
+// エリアマスタ（都道府県）
+export const AREAS = [
+  { id: 'hokkaido', name: '北海道' },
+  { id: 'aomori', name: '青森県' },
+  { id: 'iwate', name: '岩手県' },
+  { id: 'miyagi', name: '宮城県' },
+  { id: 'akita', name: '秋田県' },
+  { id: 'yamagata', name: '山形県' },
+  { id: 'fukushima', name: '福島県' },
+  { id: 'ibaraki', name: '茨城県' },
+  { id: 'tochigi', name: '栃木県' },
+  { id: 'gunma', name: '群馬県' },
+  { id: 'saitama', name: '埼玉県' },
+  { id: 'chiba', name: '千葉県' },
+  { id: 'tokyo', name: '東京都' },
+  { id: 'kanagawa', name: '神奈川県' },
+  { id: 'niigata', name: '新潟県' },
+  { id: 'toyama', name: '富山県' },
+  { id: 'ishikawa', name: '石川県' },
+  { id: 'fukui', name: '福井県' },
+  { id: 'yamanashi', name: '山梨県' },
+  { id: 'nagano', name: '長野県' },
+  { id: 'gifu', name: '岐阜県' },
+  { id: 'shizuoka', name: '静岡県' },
+  { id: 'aichi', name: '愛知県' },
+  { id: 'mie', name: '三重県' },
+  { id: 'shiga', name: '滋賀県' },
+  { id: 'kyoto', name: '京都府' },
+  { id: 'osaka', name: '大阪府' },
+  { id: 'hyogo', name: '兵庫県' },
+  { id: 'nara', name: '奈良県' },
+  { id: 'wakayama', name: '和歌山県' },
+  { id: 'tottori', name: '鳥取県' },
+  { id: 'shimane', name: '島根県' },
+  { id: 'okayama', name: '岡山県' },
+  { id: 'hiroshima', name: '広島県' },
+  { id: 'yamaguchi', name: '山口県' },
+  { id: 'tokushima', name: '徳島県' },
+  { id: 'kagawa', name: '香川県' },
+  { id: 'ehime', name: '愛媛県' },
+  { id: 'kochi', name: '高知県' },
+  { id: 'fukuoka', name: '福岡県' },
+  { id: 'saga', name: '佐賀県' },
+  { id: 'nagasaki', name: '長崎県' },
+  { id: 'kumamoto', name: '熊本県' },
+  { id: 'oita', name: '大分県' },
+  { id: 'miyazaki', name: '宮崎県' },
+  { id: 'kagoshima', name: '鹿児島県' },
+  { id: 'okinawa', name: '沖縄県' },
+] as const
+
+// エリアグループ（地域）
+export const AREA_GROUPS = [
+  {
+    id: 'zenkoku',
+    name: '全国',
+    areaIds: AREAS.map((a) => a.id), // すべての都道府県を含む
+  },
+  {
+    id: 'kanto',
+    name: '関東',
+    areaIds: ['ibaraki', 'tochigi', 'gunma', 'saitama', 'chiba', 'tokyo', 'kanagawa'],
+  },
+  {
+    id: 'kansai',
+    name: '関西',
+    areaIds: ['shiga', 'kyoto', 'osaka', 'hyogo', 'nara', 'wakayama'],
+  },
+  {
+    id: 'chubu',
+    name: '中部',
+    areaIds: ['niigata', 'toyama', 'ishikawa', 'fukui', 'yamanashi', 'nagano', 'gifu', 'shizuoka', 'aichi'],
+  },
+  {
+    id: 'chugoku',
+    name: '中国',
+    areaIds: ['tottori', 'shimane', 'okayama', 'hiroshima', 'yamaguchi'],
+  },
+  {
+    id: 'shikoku',
+    name: '四国',
+    areaIds: ['tokushima', 'kagawa', 'ehime', 'kochi'],
+  },
+  {
+    id: 'kyushu',
+    name: '九州',
+    areaIds: ['fukuoka', 'saga', 'nagasaki', 'kumamoto', 'oita', 'miyazaki', 'kagoshima', 'okinawa'],
+  },
+  {
+    id: 'tohoku',
+    name: '東北',
+    areaIds: ['aomori', 'iwate', 'miyagi', 'akita', 'yamagata', 'fukushima'],
+  },
+  {
+    id: 'hokkaido',
+    name: '北海道',
+    areaIds: ['hokkaido'],
+  },
+] as const
+
+// エリアIDからエリア名を取得
+export function getAreaName(areaId: string): string | undefined {
+  return AREAS.find((a) => a.id === areaId)?.name
+}
+
+// エリアグループIDからグループ名を取得
+export function getAreaGroupName(groupId: string): string | undefined {
+  return AREA_GROUPS.find((g) => g.id === groupId)?.name
+}
+
+// エリアIDまたはグループIDから、実際に含まれるすべてのエリアIDを展開
+export function expandAreaIds(areaOrGroupIds: string[]): string[] {
+  const expanded: string[] = []
+  
+  for (const id of areaOrGroupIds) {
+    // グループの場合
+    const group = AREA_GROUPS.find((g) => g.id === id)
+    if (group) {
+      expanded.push(...group.areaIds)
+    } else {
+      // 個別エリアの場合
+      const area = AREAS.find((a) => a.id === id)
+      if (area) {
+        expanded.push(area.id)
+      }
+    }
+  }
+  
+  // 重複を削除
+  return Array.from(new Set(expanded))
+}
+
+// 検索用：指定されたエリアID（またはグループID）で検索する際に、マッチする可能性のあるすべてのエリアID/グループIDを返す
+// 例: 'chiba' を検索 → ['chiba', 'kanto', 'zenkoku'] を返す
+export function getMatchingAreaIds(searchAreaId: string): string[] {
+  const matching: string[] = [searchAreaId] // 自分自身
+  
+  // このエリアを含むグループを探す
+  for (const group of AREA_GROUPS) {
+    if (group.areaIds.includes(searchAreaId as any)) {
+      matching.push(group.id)
+    }
+  }
+  
+  return matching
+}
+
+// すべての選択可能なエリアとグループを統合したリスト（表示用）
+export const ALL_SELECTABLE_AREAS = [
+  // まずグループ
+  ...AREA_GROUPS.map((g) => ({
+    id: g.id,
+    name: g.name,
+    type: 'group' as const,
+  })),
+  // 次に個別エリア
+  ...AREAS.map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: 'area' as const,
+  })),
+]
+
+// エリアIDまたはグループIDから表示名を取得
+export function getDisplayName(id: string): string {
+  return getAreaGroupName(id) || getAreaName(id) || id
+}
