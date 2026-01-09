@@ -12,7 +12,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* ヒーローセクション */}
-        <div className="text-center mb-16 fade-in">
+        <div className="text-center mb-8 fade-in">
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 tracking-tight leading-tight">
             <span className="bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 bg-clip-text text-transparent">
             理想の結婚式は、ここにある

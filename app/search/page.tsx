@@ -26,6 +26,204 @@ interface Vendor {
   gallery: Array<{ imageUrl: string }>
 }
 
+interface SearchResultCardProps {
+  vendor: Vendor
+  allProfileImages: string[]
+  index: number
+}
+
+function SearchResultCard({ vendor, allProfileImages, index }: SearchResultCardProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  // ベンダーが変更されたら画像インデックスをリセット
+  useEffect(() => {
+    setCurrentImageIndex(0)
+  }, [vendor.id, vendor.profileId])
+
+  const hasImages = allProfileImages.length > 0
+
+  return (
+    <Link
+      href={`/vendors/${vendor.id}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`}
+      className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 border border-gray-100 group fade-in"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="flex flex-col md:flex-row">
+        {hasImages ? (
+          <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 overflow-hidden">
+            {/* メイン画像 */}
+            <div className="relative w-full h-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={allProfileImages[currentImageIndex]}
+                src={allProfileImages[currentImageIndex]}
+                alt={`${vendor.name}の写真 ${currentImageIndex + 1}`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
+            </div>
+
+            {/* ナビゲーション矢印（複数画像がある場合のみ） */}
+            {allProfileImages.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentImageIndex(
+                      (prev) => (prev - 1 + allProfileImages.length) % allProfileImages.length
+                    )
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
+                  aria-label="前の画像"
+                >
+                  <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentImageIndex(
+                      (prev) => (prev + 1) % allProfileImages.length
+                    )
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 z-10 opacity-0 group-hover:opacity-100"
+                  aria-label="次の画像"
+                >
+                  <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* インジケーター（ドット）- 複数画像がある場合のみ */}
+            {allProfileImages.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                {allProfileImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setCurrentImageIndex(idx)
+                    }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === currentImageIndex
+                        ? 'bg-white w-6'
+                        : 'bg-white/60 hover:bg-white/80 w-1.5'
+                    }`}
+                    aria-label={`画像 ${idx + 1} に移動`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 画像カウンター - 複数画像がある場合のみ */}
+            {allProfileImages.length > 1 && (
+              <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-full text-xs font-medium z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                {currentImageIndex + 1} / {allProfileImages.length}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 flex items-center justify-center">
+            <div className="text-center">
+              <svg className="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm text-gray-400">写真を準備中</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6">
+          {/* 左側：基本情報 */}
+          <div className="flex-1 flex flex-col gap-4 min-w-0">
+            <div className="flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
+                  {vendor.profile?.name || vendor.name}
+                </h3>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {vendor.categories.map((c) => (
+                    <span key={c.category.name} className="px-3 py-1 bg-gradient-to-r from-pink-50 to-rose-50 text-pink-700 rounded-full text-xs font-medium border border-pink-200">
+                      {c.category.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {vendor.profile && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                {vendor.profile.priceMin && (
+                  <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                    ¥{vendor.profile.priceMin.toLocaleString()}〜
+                  </span>
+                )}
+                {vendor.profile.areas && vendor.profile.areas.length > 0 && (
+                  <span className="text-sm text-gray-600 flex items-center gap-1">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {vendor.profile.areas.join(', ')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* テイストタグ */}
+            {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {vendor.profile.styleTags.slice(0, 5).map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {vendor.profile.styleTags.length > 5 && (
+                  <span className="px-3 py-1 text-gray-400 text-xs">
+                    +{vendor.profile.styleTags.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 提供内容（モバイル版のみ表示） */}
+            {vendor.profile?.services && (
+              <div className="md:hidden mt-2 pt-3 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">提供内容</h4>
+                <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                  {vendor.profile.services}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 右側：提供内容（PC版のみ） */}
+          {vendor.profile?.services && (
+            <div className="hidden md:block w-80 flex-shrink-0 border-l border-gray-200 pl-6">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">提供内容</h4>
+              <p className="text-sm text-gray-600 leading-relaxed line-clamp-8">
+                {vendor.profile.services}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 function SearchContent() {
   const searchParams = useSearchParams()
   const category = searchParams.get('category')
@@ -167,137 +365,20 @@ function SearchContent() {
         ) : (
           <div className="space-y-6">
             {vendors.map((vendor, index) => {
-              const displayImage =
-                vendor.profile?.profileImages?.[0] ||
-                vendor.profile?.imageUrl ||
-                vendor.gallery[0]?.imageUrl ||
-                null
+              // すべてのプロフィール画像を統合（profileImages + imageUrl）
+              const allProfileImages: string[] = [
+                ...(vendor.profile?.profileImages || []),
+                ...(vendor.profile?.imageUrl ? [vendor.profile.imageUrl] : []),
+                ...(vendor.gallery?.map((g: any) => g.imageUrl) || []),
+              ].filter((url, idx, self) => url && self.indexOf(url) === idx) // 重複を削除
 
               return (
-                <Link
-                  key={vendor.id}
-                  href={`/vendors/${vendor.id}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`}
-                  className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 border border-gray-100 group fade-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="flex flex-col md:flex-row">
-                    {displayImage ? (
-                      <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={displayImage}
-                          alt={vendor.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.style.display = 'none'
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <svg className="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <p className="text-sm text-gray-400">写真を準備中</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6">
-                      {/* 左側：基本情報 */}
-                      <div className="flex-1 flex flex-col gap-4 min-w-0">
-                        <div className="flex items-start gap-4">
-                          {vendor.logoUrl && (
-                            <div className="relative w-14 h-14 flex-shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={vendor.logoUrl}
-                                alt={`${vendor.name}ロゴ`}
-                                className="w-full h-full object-cover rounded-full border-2 border-gray-200"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = 'none'
-                                }}
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 group-hover:text-pink-600 transition-colors">
-                              {vendor.profile?.name || vendor.name}
-                            </h3>
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {vendor.categories.map((c) => (
-                                <span key={c.category.name} className="px-3 py-1 bg-gradient-to-r from-pink-50 to-rose-50 text-pink-700 rounded-full text-xs font-medium border border-pink-200">
-                                  {c.category.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {vendor.profile && (
-                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                            {vendor.profile.priceMin && (
-                              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-                                ¥{vendor.profile.priceMin.toLocaleString()}〜
-                              </span>
-                            )}
-                            {vendor.profile.areas && vendor.profile.areas.length > 0 && (
-                              <span className="text-sm text-gray-600 flex items-center gap-1">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                {vendor.profile.areas.join(', ')}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* テイストタグ */}
-                        {vendor.profile?.styleTags && vendor.profile.styleTags.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {vendor.profile.styleTags.slice(0, 5).map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-3 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                            {vendor.profile.styleTags.length > 5 && (
-                              <span className="px-3 py-1 text-gray-400 text-xs">
-                                +{vendor.profile.styleTags.length - 5}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* 提供内容（モバイル版のみ表示） */}
-                        {vendor.profile?.services && (
-                          <div className="md:hidden mt-2 pt-3 border-t border-gray-100">
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">提供内容</h4>
-                            <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
-                              {vendor.profile.services}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 右側：提供内容（PC版のみ） */}
-                      {vendor.profile?.services && (
-                        <div className="hidden md:block w-80 flex-shrink-0 border-l border-gray-200 pl-6">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">提供内容</h4>
-                          <p className="text-sm text-gray-600 leading-relaxed line-clamp-8">
-                            {vendor.profile.services}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <SearchResultCard
+                  key={`${vendor.id}-${vendor.profileId || 'default'}`}
+                  vendor={vendor}
+                  allProfileImages={allProfileImages}
+                  index={index}
+                />
               )
             })}
           </div>

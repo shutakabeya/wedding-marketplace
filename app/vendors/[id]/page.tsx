@@ -13,6 +13,7 @@ interface Vendor {
   profile: {
     name: string | null // 出品名（プラン名）
     imageUrl: string | null
+    profileImages: string[]
     areas: string[]
     priceMin: number | null
     priceMax: number | null
@@ -42,11 +43,17 @@ function VendorDetailContent() {
   const [planBoardSlots, setPlanBoardSlots] = useState<Array<{ id: string; category: { id: string; name: string } }>>([])
   const [addingToPlanBoard, setAddingToPlanBoard] = useState(false)
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
+  const [currentProfileImageIndex, setCurrentProfileImageIndex] = useState(0)
 
   useEffect(() => {
     loadVendor()
     loadPlanBoardSlots()
   }, [params.id, profileId])
+
+  // ベンダーが変更されたら画像インデックスをリセット
+  useEffect(() => {
+    setCurrentProfileImageIndex(0)
+  }, [vendor?.id, vendor?.profile?.id])
 
   const loadVendor = async () => {
     try {
@@ -181,21 +188,97 @@ function VendorDetailContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* ヘッダーセクション（プロフィール画像とロゴ） */}
         <div className="mb-8 fade-in">
-          {vendor.profile?.imageUrl && (
-            <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl mb-6 group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={vendor.profile.imageUrl}
-                alt={vendor.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          )}
+          {(() => {
+            // すべてのプロフィール画像を統合（profileImages + imageUrl）
+            const allProfileImages: string[] = [
+              ...(vendor.profile?.profileImages || []),
+              ...(vendor.profile?.imageUrl ? [vendor.profile.imageUrl] : []),
+            ].filter((url, index, self) => url && self.indexOf(url) === index) // 重複を削除
+
+            if (allProfileImages.length === 0) return null
+
+            return (
+              <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl mb-6 group">
+                {/* メイン画像 */}
+                <div className="relative w-full h-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    key={allProfileImages[currentProfileImageIndex]}
+                    src={allProfileImages[currentProfileImageIndex]}
+                    alt={`${vendor.name}の写真 ${currentProfileImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+
+                {/* ナビゲーション矢印（複数画像がある場合のみ） */}
+                {allProfileImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setCurrentProfileImageIndex(
+                          (prev) => (prev - 1 + allProfileImages.length) % allProfileImages.length
+                        )
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 z-10"
+                      aria-label="前の画像"
+                    >
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setCurrentProfileImageIndex(
+                          (prev) => (prev + 1) % allProfileImages.length
+                        )
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 z-10"
+                      aria-label="次の画像"
+                    >
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+
+                {/* インジケーター（ドット） */}
+                {allProfileImages.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                    {allProfileImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentProfileImageIndex(index)
+                        }}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          index === currentProfileImageIndex
+                            ? 'bg-white w-8'
+                            : 'bg-white/60 hover:bg-white/80'
+                        }`}
+                        aria-label={`画像 ${index + 1} に移動`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* 画像カウンター */}
+                {allProfileImages.length > 1 && (
+                  <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-full text-sm font-medium z-10">
+                    {currentProfileImageIndex + 1} / {allProfileImages.length}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
           <div className="flex items-center gap-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
             {vendor.logoUrl && (
               <div className="relative w-28 h-28 flex-shrink-0">

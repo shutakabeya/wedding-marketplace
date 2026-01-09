@@ -20,11 +20,11 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // カテゴリフィルタ（ベンダーのcategoriesでフィルタリングするため、ここでは記録のみ）
+    // カテゴリフィルタ（プロフィールのcategoriesでフィルタリング）
     const targetCategoryName = categoryName || null
 
     // プロフィールがあるベンダーのみを表示
-    // エリアフィルタと価格フィルタもここで適用
+    // エリアフィルタ、価格フィルタ、カテゴリフィルタもここで適用
     const profileFilter: any = {}
     
     if (area) {
@@ -54,7 +54,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // プロフィールが存在するベンダーのみを取得（カテゴリフィルタはプロフィール展開後に適用）
+    // カテゴリフィルタをデータベースクエリレベルで適用（パフォーマンス向上）
+    if (targetCategoryName) {
+      profileFilter.categories = {
+        some: {
+          category: {
+            name: targetCategoryName,
+          },
+        },
+      }
+    }
+
+    // プロフィールが存在するベンダーのみを取得（すべてのフィルタを適用）
     where.profiles = {
       some: Object.keys(profileFilter).length > 0 ? profileFilter : {},
     }
@@ -77,26 +88,58 @@ export async function GET(request: NextRequest) {
 
     while (retries < maxRetries) {
       try {
-        // まず、すべてのベンダーとプロフィールを取得（ページネーションは後で適用）
+        // フィルタ条件に一致するプロフィールを持つベンダーのみを取得
+        // パフォーマンス向上のため、必要なフィールドのみを取得
         [vendorsData, total] = await Promise.all([
           prisma.vendor.findMany({
             where,
-            include: {
+            select: {
+              id: true,
+              name: true,
+              // bioは検索結果一覧では不要（詳細ページで取得）のため除外
+              logoUrl: true,
               categories: {
                 include: {
-                  category: true,
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      displayOrder: true,
+                    },
+                  },
                 },
               },
               profiles: {
-                // すべてのプロフィールを取得（デフォルト以外も含む）
+                // フィルタ条件に一致するプロフィールのみを取得（パフォーマンス向上）
+                where: Object.keys(profileFilter).length > 0 ? profileFilter : undefined,
                 orderBy: [
                   { isDefault: 'desc' }, // デフォルトを優先
                   { createdAt: 'desc' }, // 作成日時順
                 ],
-                include: {
+                select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                  profileImages: true,
+                  priceMin: true,
+                  priceMax: true,
+                  areas: true,
+                  styleTags: true,
+                  services: true, // 検索結果一覧で使用されるため必要
+                  // constraintsは検索結果一覧では不要（詳細ページで取得）のため除外
+                  categoryType: true,
+                  maxGuests: true,
+                  serviceTags: true,
+                  plans: true,
                   categories: {
                     include: {
-                      category: true,
+                      category: {
+                        select: {
+                          id: true,
+                          name: true,
+                          displayOrder: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -104,10 +147,18 @@ export async function GET(request: NextRequest) {
               gallery: {
                 take: 1,
                 orderBy: { displayOrder: 'asc' },
+                select: {
+                  id: true,
+                  imageUrl: true,
+                  caption: true,
+                },
               },
             },
             orderBy,
-            // ページネーションはプロフィール展開後に適用するため、ここでは取得しない
+            // プロフィール展開を考慮して、適切な件数制限を設定
+            // 1ベンダーあたり平均1-3プロフィールを想定して、limitの10倍程度取得
+            // ただし、最大200件まで（パフォーマンスとメモリ使用量のバランス）
+            take: Math.min(limit * 10, 200),
           }),
           prisma.vendor.count({ where }),
         ])
@@ -138,23 +189,17 @@ export async function GET(request: NextRequest) {
       }
 
       // 各プロフィールを個別の出品として追加
+      // フィルタはすでにデータベースクエリレベルで適用されているため、
+      // ここでの追加フィルタリングは不要（ただし、念のためエリアと価格の再チェックは残す）
       for (const profile of vendor.profiles) {
-        // カテゴリフィルタが指定されている場合、プロフィールのcategoriesでチェック
-        if (targetCategoryName) {
-          const hasCategory = profile.categories?.some(
-            (pc: { category: { name: string } }) => pc.category.name === targetCategoryName
-          )
-          if (!hasCategory) {
-            continue
-          }
-        }
-
-        // エリアフィルタが指定されている場合、プロフィールのエリアをチェック
+        // カテゴリフィルタはデータベースクエリで適用済みのため、ここでは不要
+        
+        // エリアフィルタが指定されている場合、念のため再チェック（クエリの条件と一致するはず）
         if (area && !profile.areas.includes(area)) {
           continue
         }
 
-        // 価格フィルタが指定されている場合、プロフィールの価格をチェック
+        // 価格フィルタが指定されている場合、念のため再チェック（クエリの条件と一致するはず）
         if (priceMin || priceMax) {
           const profilePriceMin = profile.priceMin
           const profilePriceMax = profile.priceMax
@@ -174,7 +219,7 @@ export async function GET(request: NextRequest) {
         allVendors.push({
           id: vendor.id,
           name: vendor.name,
-          bio: vendor.bio,
+          bio: null, // 検索結果一覧では不要（詳細ページで取得）
           logoUrl: vendor.logoUrl,
           categories: vendor.categories,
           gallery: vendor.gallery,
@@ -188,7 +233,7 @@ export async function GET(request: NextRequest) {
             areas: profile.areas || [],
             styleTags: profile.styleTags || [],
             services: profile.services,
-            constraints: profile.constraints,
+            constraints: null, // 検索結果一覧では不要（詳細ページで取得）
             categoryType: profile.categoryType,
             maxGuests: profile.maxGuests,
             serviceTags: profile.serviceTags || [],
