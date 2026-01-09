@@ -19,8 +19,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="max-w-3xl mx-auto text-lg text-gray-700 leading-relaxed">
-            会場・写真・ドレス・ケータリングなど、結婚式に必要なベンダーをカテゴリ別に一覧できます。
-            気になるベンダーは詳細から問い合わせて、<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">PlanBoard</Link>で全体像を組み立てていきましょう。
+            イメージを<Link href="/wedding-genie" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">WeddingGenie</Link>に入力して、理想の結婚式プランを作り上げましょう。 気になるベンダーは詳細から問い合わせて、<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">PlanBoard</Link>で全体像を組み立てていきましょう。
           </p>
         </div>
 

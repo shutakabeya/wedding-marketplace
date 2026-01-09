@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
           const areaDisplayName = getDisplayName(area)
           
           // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
-          const hasMatchingArea = profile.areas.some((profileAreaId) => 
+          const hasMatchingArea = profile.areas.some((profileAreaId: string) => 
             matchingAreaIds.includes(profileAreaId) || 
             profileAreaId === areaDisplayName ||
             profileAreaId === area

@@ -42,26 +42,17 @@ export function Header() {
               </Link>
             </div>
 
-            {/* 右側の人アイコンボタン */}
-            <Link
-              href="/couple/login"
-              className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-pink-50 rounded-lg transition-all hover:scale-110"
-              aria-label="カップルログイン"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* 右側のボタン群 */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/wedding-genie"
+                className="p-2.5 text-2xl hover:scale-110 transition-all hover:rotate-12"
+                aria-label="Wedding Genie"
+                title="Wedding Genie"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </Link>
+                🧞‍♂️
+              </Link>
+            </div>
           </div>
         </div>
       </header>

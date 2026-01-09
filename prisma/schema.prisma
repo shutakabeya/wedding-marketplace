@@ -43,6 +43,7 @@ model Couple {
   favorites     Favorite[]
   planBoard     PlanBoard?
   reviews       Review[]
+  geniePlans    GeniePlan[]
   
   @@map("couples")
 }
@@ -110,6 +111,7 @@ model VendorProfile {
   
   vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   categories    VendorProfileCategory[] // プロフィールごとのカテゴリ
+  planBoardSlots PlanBoardSlot[] // PlanBoardで選択されたプロフィール
   
   @@map("vendor_profiles")
   @@index([vendorId])
@@ -220,6 +222,7 @@ model PlanBoardSlot {
   categoryId      String   @map("category_id")
   state           String   @default("unselected") // unselected/candidate/selected/skipped
   selectedVendorId String?  @map("selected_vendor_id")
+  selectedProfileId String? @map("selected_profile_id")
   note            String?  @db.Text
   estimatedCost   Int?     @map("estimated_cost")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -228,6 +231,7 @@ model PlanBoardSlot {
   planBoard       PlanBoard @relation(fields: [planBoardId], references: [id], onDelete: Cascade)
   category        Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   selectedVendor  Vendor?   @relation(fields: [selectedVendorId], references: [id], onDelete: SetNull)
+  selectedProfile VendorProfile? @relation(fields: [selectedProfileId], references: [id], onDelete: SetNull)
   candidates      PlanBoardCandidate[]
   
   @@unique([planBoardId, categoryId])
@@ -278,4 +282,20 @@ model Review {
   
   @@unique([coupleId, vendorId, inquiryId])
   @@map("reviews")
+}
+
+// Wedding Genie 保存プラン
+model GeniePlan {
+  id            String   @id @default(uuid())
+  coupleId      String   @map("couple_id")
+  planName      String?  @map("plan_name") // ユーザーが付けた名前
+  inputSnapshot Json     @map("input_snapshot") // 入力スナップショット
+  planData      Json     @map("plan_data") // プランデータ（PlanResult）
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  
+  @@map("genie_plans")
+  @@index([coupleId])
 }

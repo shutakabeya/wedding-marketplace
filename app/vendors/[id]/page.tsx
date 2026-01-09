@@ -55,7 +55,7 @@ function VendorDetailContent() {
   // ベンダーが変更されたら画像インデックスをリセット
   useEffect(() => {
     setCurrentProfileImageIndex(0)
-  }, [vendor?.id, vendor?.profile?.id])
+  }, [vendor?.id, vendor?.profile])
 
   const loadVendor = async () => {
     try {

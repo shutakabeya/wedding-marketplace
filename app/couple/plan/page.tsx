@@ -9,14 +9,20 @@ interface PlanBoardSlot {
   id: string
   category: { id: string; name: string }
   state: 'unselected' | 'candidate' | 'selected' | 'skipped'
+  selectedVendorId?: string | null
   selectedVendor: {
     id: string
     name: string // 屋号
     profile: {
+      id?: string
       name: string | null // 出品名（プラン名）
       priceMin: number | null
       priceMax: number | null
     } | null
+  } | null
+  selectedProfile?: {
+    id: string
+    name: string | null
   } | null
   estimatedCost: number | null
   note: string | null
@@ -25,11 +31,13 @@ interface PlanBoardSlot {
       id: string
       name: string // 屋号
       profile: {
+        id?: string
         name: string | null // 出品名（プラン名）
         priceMin: number | null
         priceMax: number | null
       } | null
     }
+    profileId?: string | null
   }>
 }
 
@@ -361,7 +369,7 @@ export default function PlanBoardPage() {
                 </div>
               </div>
 
-              {slot.selectedVendor && (
+              {slot.selectedVendor && (slot.state === 'selected' || (slot.state === 'candidate' && slot.selectedVendorId)) && (
                 <div className="mb-4 p-4 bg-white rounded-lg border border-green-200">
                   <div className="flex justify-between items-start">
                     <div>
@@ -382,12 +390,27 @@ export default function PlanBoardPage() {
                         </div>
                       )}
                     </div>
-                    <Link
-                      href={`/vendors/${slot.selectedVendor.id}`}
-                      className="text-sm text-pink-600 hover:underline"
-                    >
-                      詳細を見る
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/vendors/${slot.selectedVendor.id}${slot.selectedProfile?.id ? `?profileId=${slot.selectedProfile.id}` : ''}`}
+                        className="text-sm text-pink-600 hover:underline"
+                      >
+                        詳細を見る
+                      </Link>
+                      {slot.state === 'candidate' && slot.selectedVendorId && (
+                        <button
+                          onClick={() =>
+                            updateSlot(slot.id, {
+                              state: 'selected',
+                              selectedVendorId: slot.selectedVendorId,
+                            })
+                          }
+                          className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                        >
+                          決定
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -419,23 +442,55 @@ export default function PlanBoardPage() {
                           </div>
                           <div className="flex gap-2">
                             <Link
-                              href={`/vendors/${candidate.vendor.id}`}
+                              href={`/vendors/${candidate.vendor.id}${candidate.profileId ? `?profileId=${candidate.profileId}` : ''}`}
                               className="text-sm text-pink-600 hover:underline"
                             >
                               詳細
                             </Link>
-                            <button
-                              onClick={() =>
-                                updateSlot(slot.id, {
-                                  state: 'selected',
-                                  selectedVendorId: candidate.vendor.id,
-                                  estimatedCost: candidate.vendor.profile?.priceMin || null,
-                                })
-                              }
-                              className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-                            >
-                              決定
-                            </button>
+                            {slot.state === 'candidate' && (
+                              <>
+                                {slot.selectedVendorId === candidate.vendor.id ? (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        updateSlot(slot.id, {
+                                          state: 'selected',
+                                          selectedVendorId: candidate.vendor.id,
+                                          estimatedCost: candidate.vendor.profile?.priceMin || null,
+                                        })
+                                      }
+                                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                                    >
+                                      決定
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        updateSlot(slot.id, {
+                                          state: 'candidate',
+                                          selectedVendorId: null,
+                                        })
+                                      }
+                                      className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400 transition-colors"
+                                    >
+                                      解除
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() =>
+                                      updateSlot(slot.id, {
+                                        state: 'candidate',
+                                        selectedVendorId: candidate.vendor.id,
+                                        estimatedCost: candidate.vendor.profile?.priceMin || null,
+                                      })
+                                    }
+                                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                                  >
+                                    選択
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

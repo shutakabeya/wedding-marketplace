@@ -137,6 +137,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 機能
               </div>
               <Link
+                href="/wedding-genie"
+                onClick={onClose}
+                className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"
+              >
+                Wedding Genie
+              </Link>
+              <Link
                 href="/couple/plan"
                 onClick={onClose}
                 className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"

@@ -19,6 +19,7 @@ export async function GET() {
         slots: {
           include: {
             category: true,
+            selectedProfile: true,
             selectedVendor: {
               include: {
                 profiles: {
@@ -62,6 +63,7 @@ export async function GET() {
           slots: {
             include: {
               category: true,
+              selectedProfile: true,
               selectedVendor: {
                 include: {
                   profiles: {
@@ -93,19 +95,29 @@ export async function GET() {
       ...planBoardData,
       slots: planBoardData.slots.map((slot: any) => ({
         ...slot,
+        selectedVendorId: slot.selectedVendorId || null,
+        selectedProfile: slot.selectedProfile || null,
         selectedVendor: slot.selectedVendor
           ? {
               ...slot.selectedVendor,
-              profile: slot.selectedVendor.profiles[0] || null,
+              profile: slot.selectedProfile || slot.selectedVendor.profiles[0] || null,
             }
           : null,
-        candidates: slot.candidates.map((candidate: any) => ({
-          ...candidate,
-          vendor: {
-            ...candidate.vendor,
-            profile: candidate.vendor.profiles[0] || null,
-          },
-        })),
+        candidates: slot.candidates.map((candidate: any) => {
+          // 候補のプロフィールを取得（デフォルトプロフィールを使用）
+          const profile = candidate.vendor.profiles && candidate.vendor.profiles.length > 0
+            ? candidate.vendor.profiles[0]
+            : null
+          
+          return {
+            ...candidate,
+            vendor: {
+              ...candidate.vendor,
+              profile,
+            },
+            profileId: profile?.id || null,
+          }
+        }),
       })),
     }
 

@@ -137,7 +137,7 @@ export function getMatchingAreaIds(searchAreaId: string): string[] {
   
   // このエリアを含むグループを探す
   for (const group of AREA_GROUPS) {
-    if (group.areaIds.includes(searchAreaId as any)) {
+    if ((group.areaIds as readonly string[]).includes(searchAreaId)) {
       matching.push(group.id)
     }
   }
