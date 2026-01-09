@@ -4,7 +4,10 @@ import { getSession } from '@/lib/auth'
 import { z } from 'zod'
 
 const createProfileSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1), // プロフィール名（出品名）
+  vendorName: z.string().optional(), // 屋号（vendors.nameを更新する場合）
+  bio: z.string().optional().nullable(), // 自己紹介（vendors.bioを更新する場合）
+  logoUrl: z.string().optional().nullable(), // ロゴ（vendors.logoUrlを更新する場合）
   imageUrl: z.string().optional().nullable(),
   profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
@@ -97,6 +100,19 @@ export async function POST(request: NextRequest) {
         ? Math.min(...data.plans.map((p) => p.price))
         : undefined
 
+    // ベンダー基本情報（vendorsテーブル）を更新（指定されている場合）
+    if (data.vendorName || data.bio !== undefined || data.logoUrl !== undefined) {
+      const vendorUpdateData: any = {}
+      if (data.vendorName) vendorUpdateData.name = data.vendorName
+      if (data.bio !== undefined) vendorUpdateData.bio = data.bio
+      if (data.logoUrl !== undefined) vendorUpdateData.logoUrl = data.logoUrl
+      
+      await prisma.vendor.update({
+        where: { id: session.id },
+        data: vendorUpdateData,
+      })
+    }
+
     // デフォルトプロフィールを設定する場合、既存のデフォルトを解除
     if (data.isDefault === true) {
       await prisma.vendorProfile.updateMany({
@@ -124,8 +140,8 @@ export async function POST(request: NextRequest) {
         priceMin: computedPriceMin ?? data.priceMin,
         priceMax: data.priceMax,
         styleTags: data.styleTags || [],
-        services: data.services,
-        constraints: data.constraints,
+        services: data.services || null, // nullを明示的に設定
+        constraints: data.constraints || null, // nullを明示的に設定
         isDefault: data.isDefault || false,
         // プロフィールごとのカテゴリを設定
         categories: data.categoryIds && data.categoryIds.length > 0
@@ -137,6 +153,8 @@ export async function POST(request: NextRequest) {
           : undefined,
       },
     })
+
+    console.log(`Created profile: id=${profile.id}, name=${profile.name}, services=${profile.services ? 'exists' : 'null'}, vendorId=${profile.vendorId}`)
 
     return NextResponse.json({ profile })
   } catch (error) {

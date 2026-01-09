@@ -271,11 +271,13 @@ function VendorDetailContent() {
               </div>
             )}
 
-            {/* 説明 */}
+            {/* プロフィール・説明 */}
             {vendor.bio && (
               <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">プロフィール</h2>
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">{vendor.bio}</p>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">
+                  {vendor.bio}
+                </p>
               </div>
             )}
 

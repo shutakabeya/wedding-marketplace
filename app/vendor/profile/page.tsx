@@ -95,8 +95,8 @@ export default function VendorProfilePage() {
       const data = await res.json()
       const v = data.vendor
       setVendor(v)
-      // フォームは初期状態のまま（新規作成モード）
-      resetForm()
+      // フォームは初期状態のまま（新規作成モード）- 最新のベンダー情報を使用
+      resetForm(v)
     } catch (error) {
       console.error('Failed to load profile:', error)
       alert('プロフィールの取得に失敗しました')
@@ -105,13 +105,15 @@ export default function VendorProfilePage() {
     }
   }
 
-  const resetForm = () => {
+  const resetForm = (vendorData?: Vendor | null) => {
+    // vendorDataが渡された場合はそれを使用、そうでなければ現在のvendor状態を使用
+    const currentVendor = vendorData || vendor
     setFormData({
       profileName: '',
-      name: vendor?.name || '',
-      bio: vendor?.bio || '',
-      logoUrl: vendor?.logoUrl || '',
-      categoryIds: vendor?.categories.map((c: any) => c.category.id) || [],
+      name: currentVendor?.name || '',
+      bio: currentVendor?.bio || '',
+      logoUrl: currentVendor?.logoUrl || '',
+      categoryIds: currentVendor?.categories?.map((c: any) => c.category.id) || [],
       areas: [],
       areaInput: '',
       priceMin: '',
@@ -138,12 +140,30 @@ export default function VendorProfilePage() {
       }
       const data = await res.json()
       const profile = data.profile
+      const vendorData = data.vendor || vendor // APIから返されたベンダー情報、またはフォールバック
+      
+      // プロフィールのカテゴリを使用（プロフィールごとにカテゴリが設定されている）
+      // profile.categoriesはVendorProfileCategory[]で、各要素にcategoryが含まれている
+      const profileCategoryIds = profile.categories?.map((pc: any) => {
+        // categoryオブジェクトが含まれている場合はそのid、そうでなければcategoryId
+        return pc.category?.id || pc.categoryId
+      }).filter((id: string) => id) || [] // undefined/nullを除外
+      
+      console.log('Loading profile for edit:', {
+        profileId,
+        profileName: profile.name,
+        vendorName: vendorData?.name,
+        vendorBio: vendorData?.bio,
+        profileCategoryIds,
+        profileServices: profile.services?.substring(0, 50),
+      })
+      
       setFormData({
         profileName: profile.name || '',
-        name: vendor?.name || '',
-        bio: vendor?.bio || '',
-        logoUrl: vendor?.logoUrl || '',
-        categoryIds: vendor?.categories.map((c: any) => c.category.id) || [],
+        name: vendorData?.name || '',
+        bio: vendorData?.bio || '',
+        logoUrl: vendorData?.logoUrl || '',
+        categoryIds: profileCategoryIds.length > 0 ? profileCategoryIds : (vendorData?.categories?.map((c: any) => c.category.id) || []),
         areas: profile.areas || [],
         areaInput: '',
         priceMin: profile.priceMin?.toString() || '',
@@ -164,6 +184,15 @@ export default function VendorProfilePage() {
             description: p.description || '',
           })) || [],
       })
+      
+      // ベンダー情報も更新（最新の状態に保つ）
+      if (vendorData) {
+        setVendor({
+          ...vendor!,
+          ...vendorData,
+        })
+      }
+      
       setEditingProfileId(profileId)
       setShowForm(true)
       // ページ先頭までスクロール
@@ -258,7 +287,10 @@ export default function VendorProfilePage() {
 
     try {
       const payload = {
-        name: formData.profileName || '新しい出品',
+        name: formData.profileName || '新しい出品', // プロフィール名（出品名）
+        vendorName: formData.name, // 屋号（vendors.name）
+        bio: formData.bio || null, // 自己紹介（vendors.bio）
+        logoUrl: formData.logoUrl || null, // ロゴ（vendors.logoUrl）
         imageUrl: formData.profileImages[0] || null,
         profileImages: formData.profileImages,
         areas: formData.areas,
@@ -266,8 +298,8 @@ export default function VendorProfilePage() {
         maxGuests: formData.maxGuests ? parseInt(formData.maxGuests, 10) : null,
         serviceTags: formData.serviceTags,
         styleTags: formData.styleTags,
-        services: formData.services || null,
-        constraints: formData.constraints || null,
+        services: formData.services || null, // 提供内容（vendor_profiles.services）
+        constraints: formData.constraints || null, // 制約（vendor_profiles.constraints）
         categoryIds: formData.categoryIds, // カテゴリIDを追加
         plans: formData.plans
           .filter((p) => p.name.trim() && p.price.trim())

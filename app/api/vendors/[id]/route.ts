@@ -10,6 +10,7 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams
     const profileId = searchParams.get('profileId')
 
+    // ベンダー情報を取得
     const vendorData = await prisma.vendor.findUnique({
       where: { id },
       include: {
@@ -17,13 +18,6 @@ export async function GET(
           include: {
             category: true,
           },
-        },
-        profiles: {
-          // プロフィールIDが指定されている場合は該当プロフィール、そうでなければデフォルトプロフィール
-          where: profileId 
-            ? { id: profileId }
-            : { isDefault: true },
-          take: 1,
         },
         gallery: {
           orderBy: { displayOrder: 'asc' },
@@ -38,18 +32,82 @@ export async function GET(
       )
     }
 
-    // プロフィールIDが指定されているが、該当プロフィールが見つからない場合
-    if (profileId && vendorData.profiles.length === 0) {
-      return NextResponse.json(
-        { error: 'プロフィールが見つかりません' },
-        { status: 404 }
-      )
+    // プロフィールIDが指定されている場合は該当プロフィールを取得、そうでなければデフォルトプロフィールを取得
+    let profile = null
+    if (profileId) {
+      // 指定されたプロフィールIDがこのベンダーに属しているか確認
+      profile = await prisma.vendorProfile.findFirst({
+        where: {
+          id: profileId,
+          vendorId: id,
+        },
+        include: {
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+        },
+      })
+      
+      if (!profile) {
+        console.error(`Profile not found: vendorId=${id}, profileId=${profileId}`)
+        return NextResponse.json(
+          { error: 'プロフィールが見つかりません' },
+          { status: 404 }
+        )
+      }
+      
+      console.log(`Found profile: id=${profile.id}, name=${profile.name}, isDefault=${profile.isDefault}, vendorId=${profile.vendorId}`)
+    } else {
+      // デフォルトプロフィールを取得
+      profile = await prisma.vendorProfile.findFirst({
+        where: {
+          vendorId: id,
+          isDefault: true,
+        },
+        include: {
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+        },
+      })
+      
+      if (profile) {
+        console.log(`Found default profile: id=${profile.id}, name=${profile.name}, vendorId=${profile.vendorId}`)
+      } else {
+        console.log(`No default profile found for vendorId=${id}`)
+      }
     }
 
     // 指定されたプロフィールまたはデフォルトプロフィールを返す
+    // プロフィール情報を明示的に設定（必要なフィールドをすべて含める）
     const vendor = {
-      ...vendorData,
-      profile: vendorData.profiles[0] || null,
+      id: vendorData.id,
+      name: vendorData.name,
+      bio: vendorData.bio,
+      logoUrl: vendorData.logoUrl,
+      categories: vendorData.categories,
+      gallery: vendorData.gallery,
+      profile: profile ? {
+        id: profile.id,
+        name: profile.name,
+        imageUrl: profile.imageUrl,
+        profileImages: profile.profileImages || [],
+        priceMin: profile.priceMin,
+        priceMax: profile.priceMax,
+        areas: profile.areas || [],
+        styleTags: profile.styleTags || [],
+        services: profile.services,
+        constraints: profile.constraints,
+        categoryType: profile.categoryType,
+        maxGuests: profile.maxGuests,
+        serviceTags: profile.serviceTags || [],
+        plans: profile.plans,
+        categories: profile.categories,
+      } : null,
     }
 
     return NextResponse.json({ vendor })

@@ -4,7 +4,10 @@ import { getSession } from '@/lib/auth'
 import { z } from 'zod'
 
 const updateProfileSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1).optional(), // プロフィール名（出品名）
+  vendorName: z.string().optional(), // 屋号（vendors.nameを更新する場合）
+  bio: z.string().optional().nullable(), // 自己紹介（vendors.bioを更新する場合）
+  logoUrl: z.string().optional().nullable(), // ロゴ（vendors.logoUrlを更新する場合）
   imageUrl: z.string().optional().nullable(),
   profileImages: z.array(z.string()).optional(),
   areas: z.array(z.string()).optional(),
@@ -56,6 +59,19 @@ export async function GET(
             category: true,
           },
         },
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            bio: true,
+            logoUrl: true,
+            categories: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -66,7 +82,10 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ profile })
+    return NextResponse.json({ 
+      profile,
+      vendor: profile.vendor, // ベンダー情報も返す
+    })
   } catch (error) {
     console.error('Vendor profile GET error:', error)
     return NextResponse.json(
@@ -115,6 +134,19 @@ export async function PATCH(
         ? Math.min(...data.plans.map((p) => p.price))
         : undefined
 
+    // ベンダー基本情報（vendorsテーブル）を更新（指定されている場合）
+    if (data.vendorName || data.bio !== undefined || data.logoUrl !== undefined) {
+      const vendorUpdateData: any = {}
+      if (data.vendorName) vendorUpdateData.name = data.vendorName
+      if (data.bio !== undefined) vendorUpdateData.bio = data.bio
+      if (data.logoUrl !== undefined) vendorUpdateData.logoUrl = data.logoUrl
+      
+      await prisma.vendor.update({
+        where: { id: session.id },
+        data: vendorUpdateData,
+      })
+    }
+
     // デフォルトプロフィールを設定する場合、既存のデフォルトを解除
     if (data.isDefault === true) {
       await prisma.vendorProfile.updateMany({
@@ -160,14 +192,16 @@ export async function PATCH(
     else if (data.priceMin !== undefined) updateData.priceMin = data.priceMin
     if (data.priceMax !== undefined) updateData.priceMax = data.priceMax
     if (data.styleTags !== undefined) updateData.styleTags = data.styleTags
-    if (data.services !== undefined) updateData.services = data.services
-    if (data.constraints !== undefined) updateData.constraints = data.constraints
+    if (data.services !== undefined) updateData.services = data.services || null // nullを明示的に設定
+    if (data.constraints !== undefined) updateData.constraints = data.constraints || null // nullを明示的に設定
     if (data.isDefault !== undefined) updateData.isDefault = data.isDefault
 
     const profile = await prisma.vendorProfile.update({
       where: { id },
       data: updateData,
     })
+
+    console.log(`Updated profile: id=${profile.id}, name=${profile.name}, services=${profile.services ? 'exists' : 'null'}, vendorId=${profile.vendorId}`)
 
     return NextResponse.json({ profile })
   } catch (error) {

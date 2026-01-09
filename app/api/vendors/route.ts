@@ -170,11 +170,31 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // プロフィール情報を明示的に設定（必要なフィールドをすべて含める）
         allVendors.push({
-          ...vendor,
-          profile: profile,
-          // プロフィールIDを追加（必要に応じて）
-          profileId: profile.id,
+          id: vendor.id,
+          name: vendor.name,
+          bio: vendor.bio,
+          logoUrl: vendor.logoUrl,
+          categories: vendor.categories,
+          gallery: vendor.gallery,
+          profile: {
+            id: profile.id,
+            name: profile.name,
+            imageUrl: profile.imageUrl,
+            profileImages: profile.profileImages || [],
+            priceMin: profile.priceMin,
+            priceMax: profile.priceMax,
+            areas: profile.areas || [],
+            styleTags: profile.styleTags || [],
+            services: profile.services,
+            constraints: profile.constraints,
+            categoryType: profile.categoryType,
+            maxGuests: profile.maxGuests,
+            serviceTags: profile.serviceTags || [],
+            plans: profile.plans,
+          },
+          profileId: profile.id, // プロフィールIDを明示的に追加
         })
       }
     }

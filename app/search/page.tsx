@@ -182,7 +182,7 @@ function SearchContent() {
                 >
                   <div className="flex flex-col md:flex-row">
                     {displayImage ? (
-                      <div className="relative w-full md:w-80 h-64 md:h-auto bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0">
+                      <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 overflow-hidden">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={displayImage}
@@ -195,7 +195,7 @@ function SearchContent() {
                         />
                       </div>
                     ) : (
-                      <div className="relative w-full md:w-80 h-64 md:h-auto bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 flex items-center justify-center">
+                      <div className="relative w-full md:w-80 h-64 bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50 flex-shrink-0 flex items-center justify-center">
                         <div className="text-center">
                           <svg className="w-16 h-16 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -207,7 +207,7 @@ function SearchContent() {
 
                     <div className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6">
                       {/* 左側：基本情報 */}
-                      <div className="flex-1 flex flex-col gap-3 min-w-0">
+                      <div className="flex-1 flex flex-col gap-4 min-w-0">
                         <div className="flex items-start gap-4">
                           {vendor.logoUrl && (
                             <div className="relative w-14 h-14 flex-shrink-0">
@@ -240,7 +240,7 @@ function SearchContent() {
                         {vendor.profile && (
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                             {vendor.profile.priceMin && (
-                              <span className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
                                 ¥{vendor.profile.priceMin.toLocaleString()}〜
                               </span>
                             )}
@@ -275,18 +275,22 @@ function SearchContent() {
                           </div>
                         )}
 
-                        {/* 提供内容（抜粋） */}
+                        {/* 提供内容（モバイル版のみ表示） */}
                         {vendor.profile?.services && (
-                          <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                            {vendor.profile.services}
-                          </p>
+                          <div className="md:hidden mt-2 pt-3 border-t border-gray-100">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">提供内容</h4>
+                            <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                              {vendor.profile.services}
+                            </p>
+                          </div>
                         )}
                       </div>
 
                       {/* 右側：提供内容（PC版のみ） */}
                       {vendor.profile?.services && (
-                        <div className="md:w-80 md:flex-shrink-0 md:border-l md:border-gray-200 md:pl-6">
-                          <p className="text-sm text-gray-600 line-clamp-4 md:line-clamp-none leading-relaxed">
+                        <div className="hidden md:block w-80 flex-shrink-0 border-l border-gray-200 pl-6">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3">提供内容</h4>
+                          <p className="text-sm text-gray-600 leading-relaxed line-clamp-8">
                             {vendor.profile.services}
                           </p>
                         </div>

@@ -122,7 +122,7 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
             className="flex gap-6 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory hide-scrollbar"
           >
             {vendors.map((vendor, index) => (
-              <VendorCard key={vendor.id} vendor={vendor} index={index} />
+              <VendorCard key={`${vendor.id}-${vendor.profileId || 'default'}`} vendor={vendor} index={index} />
             ))}
           </div>
         </div>
