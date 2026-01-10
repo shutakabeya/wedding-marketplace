@@ -44,6 +44,7 @@ model Couple {
   planBoard     PlanBoard?
   reviews       Review[]
   geniePlans    GeniePlan[]
+  timelines     Timeline[]
   
   @@map("couples")
 }
@@ -300,4 +301,43 @@ model GeniePlan {
   
   @@map("genie_plans")
   @@index([coupleId])
+}
+
+// タイムライン（結婚式当日の進行）
+model Timeline {
+  id            String   @id @default(uuid())
+  coupleId      String   @map("couple_id")
+  title         String   @default("結婚式当日のタイムライン")
+  startTime     String   @default("09:00") // 開始時刻（HH:mm形式）
+  shareToken    String?  @unique @map("share_token") // 共有用トークン（閲覧専用）
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  items         TimelineItem[]
+  
+  @@map("timelines")
+  @@index([coupleId])
+  @@index([shareToken])
+}
+
+// タイムライン項目
+model TimelineItem {
+  id            String   @id @default(uuid())
+  timelineId    String   @map("timeline_id")
+  order         Int      // 並び順
+  startTime     String?  @map("start_time") // 開始時刻（HH:mm形式、nullの場合は自動計算）
+  duration      Int      @default(30) // 所要時間（分）
+  isFixedTime   Boolean  @default(false) @map("is_fixed_time") // 開始時刻が固定かどうか
+  content       String   // 内容（例: "受付開始"、"挙式"）
+  stakeholders  String[] // 関係者（例: ["新郎新婦", "ゲスト", "スタッフ"]）
+  location      String?  @db.Text // 場所
+  notes         String?  @db.Text // メモ
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  timeline      Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  
+  @@map("timeline_items")
+  @@index([timelineId, order])
 }

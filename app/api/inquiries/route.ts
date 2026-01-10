@@ -126,7 +126,6 @@ export async function GET(request: NextRequest) {
         category: true,
         messages: {
           orderBy: { createdAt: 'asc' },
-          take: 1,
         },
       },
       orderBy: { createdAt: 'desc' },

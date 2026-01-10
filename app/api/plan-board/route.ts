@@ -28,18 +28,6 @@ export async function GET() {
                 },
               },
             },
-            candidates: {
-              include: {
-                vendor: {
-                  include: {
-                    profiles: {
-                      where: { isDefault: true },
-                      take: 1,
-                    },
-                  },
-                },
-              },
-            },
           },
         },
       },
@@ -103,22 +91,7 @@ export async function GET() {
               profile: slot.selectedProfile || slot.selectedVendor.profiles[0] || null,
             }
           : null,
-        candidates: slot.candidates.map((candidate: any) => {
-          // 候補のプロフィールを取得（デフォルトプロフィールを使用）
-          const profile = candidate.vendor.profiles && candidate.vendor.profiles.length > 0
-            ? candidate.vendor.profiles[0]
-            : null
-          
-          return {
-            ...candidate,
-            vendor: {
-              ...candidate.vendor,
-              profile,
-            },
-            profileId: profile?.id || null,
-            source: candidate.source || 'manual',
-          }
-        }),
+        candidates: [], // candidates機能は削除、selectedVendorのみ使用
       })),
     }
 

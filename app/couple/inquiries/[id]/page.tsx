@@ -158,8 +158,11 @@ export default function CoupleInquiryDetailPage() {
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Link href="/couple/inquiries" className="text-pink-600 hover:underline">
+        <div className="mb-6 flex gap-4">
+          <Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 font-medium">
+            ← PlanBoardに戻る
+          </Link>
+          <Link href="/couple/inquiries" className="text-gray-600 hover:text-gray-700">
             ← 問い合わせ一覧に戻る
           </Link>
         </div>

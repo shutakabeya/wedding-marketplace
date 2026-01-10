@@ -133,10 +133,10 @@ export default function SavedPlansPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <Link
-            href="/wedding-genie"
+            href="/couple/plan"
             className="text-pink-600 hover:text-pink-700 font-medium"
           >
-            ← Wedding Genieに戻る
+            ← PlanBoardに戻る
           </Link>
         </div>
 

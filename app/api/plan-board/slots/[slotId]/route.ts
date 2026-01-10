@@ -6,6 +6,7 @@ import { z } from 'zod'
 const updateSlotSchema = z.object({
   state: z.enum(['unselected', 'candidate', 'selected', 'skipped']).optional(),
   selectedVendorId: z.string().uuid().optional().nullable(),
+  selectedProfileId: z.string().uuid().optional().nullable(),
   estimatedCost: z.number().optional().nullable(),
   note: z.string().optional().nullable(),
 })
@@ -42,11 +43,14 @@ export async function PATCH(
       )
     }
 
+      // candidates機能は削除されたため、candidatesの削除処理は不要
+
       const updatedSlotData = await prisma.planBoardSlot.update({
       where: { id: slotId },
       data: {
         state: data.state,
         selectedVendorId: data.selectedVendorId,
+        selectedProfileId: data.selectedProfileId,
         estimatedCost: data.estimatedCost,
         note: data.note,
       },
@@ -58,18 +62,6 @@ export async function PATCH(
             profiles: {
               where: { isDefault: true },
               take: 1,
-            },
-          },
-        },
-        candidates: {
-          include: {
-            vendor: {
-              include: {
-                profiles: {
-                  where: { isDefault: true },
-                  take: 1,
-                },
-              },
             },
           },
         },
@@ -85,22 +77,7 @@ export async function PATCH(
             profile: updatedSlotData.selectedProfile || updatedSlotData.selectedVendor.profiles[0] || null,
           }
         : null,
-      candidates: updatedSlotData.candidates.map((candidate: any) => {
-        // 候補のプロフィールを取得（デフォルトプロフィールを使用）
-        const profile = candidate.vendor.profiles && candidate.vendor.profiles.length > 0
-          ? candidate.vendor.profiles[0]
-          : null
-        
-        return {
-          ...candidate,
-          vendor: {
-            ...candidate.vendor,
-            profile,
-          },
-          profileId: profile?.id || null,
-          source: candidate.source || 'manual',
-        }
-      }),
+      candidates: [], // candidates機能は削除、selectedVendorのみ使用
     }
 
     return NextResponse.json({ slot: updatedSlot })

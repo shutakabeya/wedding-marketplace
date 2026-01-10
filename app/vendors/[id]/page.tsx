@@ -101,13 +101,19 @@ function VendorDetailContent() {
   }
 
   const handleAddToPlanBoard = async (slotId: string) => {
-    if (!vendor) return
+    if (!vendor || !vendor.profile) return
     setAddingToPlanBoard(true)
     try {
-      const res = await fetch(`/api/plan-board/slots/${slotId}/candidates`, {
-        method: 'POST',
+      // selectedVendorとして直接追加（stateを'candidate'にする）
+      const res = await fetch(`/api/plan-board/slots/${slotId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId: vendor.id }),
+        body: JSON.stringify({
+          state: 'candidate',
+          selectedVendorId: vendor.id,
+          selectedProfileId: vendor.profile.id || null,
+          estimatedCost: vendor.profile.priceMin || null,
+        }),
       })
 
       if (!res.ok) {
@@ -452,7 +458,7 @@ function VendorDetailContent() {
               <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">PlanBoardに追加</h2>
                 <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                  このベンダーをPlanBoardの候補として追加できます
+                  このベンダーをPlanBoardに追加できます
                 </p>
                 <div className="space-y-3">
                   {vendor.categories.map((vc) => {

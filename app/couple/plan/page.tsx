@@ -26,20 +26,6 @@ interface PlanBoardSlot {
   } | null
   estimatedCost: number | null
   note: string | null
-  candidates: Array<{
-    vendor: {
-      id: string
-      name: string // 屋号
-      profile: {
-        id?: string
-        name: string | null // 出品名（プラン名）
-        priceMin: number | null
-        priceMax: number | null
-      } | null
-    }
-    profileId?: string | null
-    source?: string | null // "genie" | "manual"
-  }>
 }
 
 interface PlanBoard {
@@ -56,13 +42,32 @@ export default function PlanBoardPage() {
   const [totalBudget, setTotalBudget] = useState(0)
   const [loading, setLoading] = useState(true)
   const [inquiries, setInquiries] = useState<any[]>([])
+  const [savedPlans, setSavedPlans] = useState<any[]>([])
   const [step2Completed, setStep2Completed] = useState(false)
   const [todoExpanded, setTodoExpanded] = useState<{ [key: number]: boolean }>({ 1: true })
+  const [allTodosExpanded, setAllTodosExpanded] = useState(false)
 
   useEffect(() => {
     loadPlanBoard()
     loadInquiries()
+    loadSavedPlans()
   }, [])
+
+  const loadSavedPlans = async () => {
+    try {
+      const res = await fetch('/api/wedding-genie/plans')
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+      if (res.ok) {
+        const data = await res.json()
+        setSavedPlans(data.plans || [])
+      }
+    } catch (error) {
+      console.error('Failed to load saved plans:', error)
+    }
+  }
 
   const loadInquiries = async () => {
     try {
@@ -102,27 +107,12 @@ export default function PlanBoardPage() {
     updates: {
       state?: 'unselected' | 'candidate' | 'selected' | 'skipped'
       selectedVendorId?: string | null
+      selectedProfileId?: string | null
       estimatedCost?: number | null
       note?: string | null
     }
   ) => {
     try {
-      // 決定を解除する場合、候補がある場合は'candidate'に戻す
-      // genieから登録した候補がある場合は、最初のgenie候補をselectedVendorIdとして設定
-      if (updates.state === 'unselected' && updates.selectedVendorId === null) {
-        const slot = planBoard?.slots.find((s) => s.id === slotId)
-        if (slot && slot.candidates.length > 0) {
-          updates.state = 'candidate'
-          // genieから登録した最初の候補があれば、それを選択状態にする
-          const genieCandidate = slot.candidates.find((c) => c.source === 'genie')
-          if (genieCandidate) {
-            updates.selectedVendorId = genieCandidate.vendor.id
-          } else {
-            // genie候補がなければ、最初の候補を選択状態にする
-            updates.selectedVendorId = slot.candidates[0].vendor.id
-          }
-        }
-      }
 
       const res = await fetch(`/api/plan-board/slots/${slotId}`, {
         method: 'PATCH',
@@ -148,55 +138,6 @@ export default function PlanBoardPage() {
     }
   }
 
-  const addCandidate = async (slotId: string, vendorId: string) => {
-    try {
-      const res = await fetch(`/api/plan-board/slots/${slotId}/candidates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId }),
-      })
-
-      if (res.status === 401) {
-        router.push('/couple/login')
-        return
-      }
-
-      if (!res.ok) {
-        const data = await res.json()
-        alert(data.error || '候補の追加に失敗しました')
-        return
-      }
-
-      await loadPlanBoard()
-    } catch (error) {
-      console.error('Failed to add candidate:', error)
-      alert('候補の追加に失敗しました')
-    }
-  }
-
-  const removeCandidate = async (slotId: string, vendorId: string) => {
-    try {
-      const res = await fetch(`/api/plan-board/slots/${slotId}/candidates?vendorId=${vendorId}`, {
-        method: 'DELETE',
-      })
-
-      if (res.status === 401) {
-        router.push('/couple/login')
-        return
-      }
-
-      if (!res.ok) {
-        const data = await res.json()
-        alert(data.error || '候補の削除に失敗しました')
-        return
-      }
-
-      await loadPlanBoard()
-    } catch (error) {
-      console.error('Failed to remove candidate:', error)
-      alert('候補の削除に失敗しました')
-    }
-  }
 
   const getStateColor = (state: string) => {
     switch (state) {
@@ -244,6 +185,12 @@ export default function PlanBoardPage() {
   const candidateSlots = planBoard.slots.filter((s) => s.state === 'candidate')
   const unselectedSlots = planBoard.slots.filter((s) => s.state === 'unselected')
   const skippedSlots = planBoard.slots.filter((s) => s.state === 'skipped')
+  
+  // 決定したカテゴリ（selected/skipped）を下に、未決定のカテゴリ（unselected/candidate）を上に表示
+  const sortedSlots = [
+    ...planBoard.slots.filter((s) => s.state === 'unselected' || s.state === 'candidate'),
+    ...planBoard.slots.filter((s) => s.state === 'selected' || s.state === 'skipped'),
+  ]
 
   // 次のアクションを提案（既存ロジックを再利用）
   const getNextActions = () => {
@@ -320,6 +267,111 @@ export default function PlanBoardPage() {
     return 'pending'
   }
 
+  // 現在のアクティブなステップを取得
+  const getCurrentActiveStep = (): number => {
+    const step1Status = getStep1Status()
+    const step2Status = getStep2Status()
+    const step3Status = getStep3Status()
+    const step4Status = getStep4Status()
+
+    if (step4Status === 'active') return 4
+    if (step3Status === 'active') return 3
+    if (step2Status === 'active') return 2
+    if (step1Status === 'active') return 1
+    // 全て完了している場合は4を返す
+    if (step4Status === 'completed') return 4
+    if (step3Status === 'completed') return 3
+    if (step2Status === 'completed') return 2
+    if (step1Status === 'completed') return 1
+    return 1
+  }
+
+  // 表示すべきステップを決定（進捗に応じて）
+  const getVisibleSteps = (): number[] => {
+    if (allTodosExpanded) {
+      // 全て展開する場合は全ステップを表示
+      return [1, 2, 3, 4]
+    }
+    
+    // 進捗に応じて表示するステップを決定
+    const step1Status = getStep1Status()
+    const step2Status = getStep2Status()
+    const step3Status = getStep3Status()
+    const step4Status = getStep4Status()
+    
+    const visibleSteps: number[] = []
+    
+    // 現在のアクティブステップを取得
+    let activeStep = 0
+    if (step1Status === 'active') activeStep = 1
+    else if (step2Status === 'active') activeStep = 2
+    else if (step3Status === 'active') activeStep = 3
+    else if (step4Status === 'active') activeStep = 4
+    
+    // アクティブステップがない場合（全て完了またはpending）は、最後のcompletedステップを表示
+    if (activeStep === 0) {
+      if (step4Status === 'completed') activeStep = 4
+      else if (step3Status === 'completed') activeStep = 3
+      else if (step2Status === 'completed') activeStep = 2
+      else if (step1Status === 'completed') activeStep = 1
+      else activeStep = 1 // 全てpendingの場合は①を表示
+    }
+    
+    // アクティブステップの直前のcompletedステップ（1つだけ）を表示
+    if (activeStep > 1) {
+      const prevStep = activeStep - 1
+      const prevStepStatus = 
+        prevStep === 1 ? step1Status :
+        prevStep === 2 ? step2Status :
+        prevStep === 3 ? step3Status :
+        'pending'
+      
+      if (prevStepStatus === 'completed') {
+        visibleSteps.push(prevStep)
+      }
+    }
+    
+    // アクティブステップ自体を表示
+    visibleSteps.push(activeStep)
+    
+    // 次のステップがactiveまたはcompletedの場合は表示
+    if (activeStep < 4) {
+      const nextStep = activeStep + 1
+      const nextStepStatus = 
+        nextStep === 2 ? step2Status :
+        nextStep === 3 ? step3Status :
+        nextStep === 4 ? step4Status :
+        'pending'
+      
+      if (nextStepStatus !== 'pending') {
+        visibleSteps.push(nextStep)
+      }
+    }
+    
+    return visibleSteps
+  }
+
+  // 進捗に応じた表示ステップを取得
+  const visibleSteps = getVisibleSteps()
+
+  // 全てのToDoを展開/折りたたみ
+  const toggleAllTodos = () => {
+    if (allTodosExpanded) {
+      // 折りたたむ：進捗に応じた表示に戻す
+      const currentVisibleSteps = getVisibleSteps()
+      const expandedState: { [key: number]: boolean } = {}
+      currentVisibleSteps.forEach(step => {
+        expandedState[step] = true
+      })
+      setTodoExpanded(expandedState)
+      setAllTodosExpanded(false)
+    } else {
+      // 展開する：①-④を全て展開
+      setTodoExpanded({ 1: true, 2: true, 3: true, 4: true })
+      setAllTodosExpanded(true)
+    }
+  }
+
   // ステップの色を取得
   const getStepColor = (status: StepStatus) => {
     switch (status) {
@@ -347,13 +399,88 @@ export default function PlanBoardPage() {
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
       <Header />
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6 tracking-tight">結婚式プランボード</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">結婚式プランボード</h1>
+          <div className="flex items-center gap-4">
+            {/* 保存済みプラン */}
+            <Link
+              href="/wedding-genie/saved"
+              className="relative flex items-center gap-2 text-gray-700 hover:text-purple-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              <span className="text-sm font-medium">保存済みプラン</span>
+            </Link>
+
+            {/* 問い合わせ・チャット */}
+            <Link
+              href="/couple/inquiries"
+              className="relative flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="text-sm font-medium">チャット</span>
+              {(() => {
+                // カップルが最後に送信したメッセージの後にベンダーからの新規メッセージがあるかを確認
+                const hasNewMessages = inquiries.some((inq) => {
+                  if (!inq.messages || inq.messages.length === 0) return false
+                  // メッセージを時系列で並べ替え
+                  const sortedMessages = [...inq.messages].sort((a, b) => 
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                  )
+                  // 最後のメッセージがベンダーからのもので、その前のカップルのメッセージより後か
+                  const lastMessage = sortedMessages[sortedMessages.length - 1]
+                  if (!lastMessage || lastMessage.senderType !== 'vendor') return false
+                  // カップルが最後に送信したメッセージを探す
+                  let lastCoupleMessageTime = null
+                  for (let i = sortedMessages.length - 1; i >= 0; i--) {
+                    if (sortedMessages[i].senderType === 'couple') {
+                      lastCoupleMessageTime = new Date(sortedMessages[i].createdAt).getTime()
+                      break
+                    }
+                  }
+                  // カップルが最後に送信したメッセージより後で、ベンダーからのメッセージがあれば新着
+                  if (lastCoupleMessageTime === null) {
+                    // カップルからのメッセージがない場合、ベンダーからのメッセージがあれば新着
+                    return true
+                  }
+                  return new Date(lastMessage.createdAt).getTime() > lastCoupleMessageTime
+                })
+                return hasNewMessages ? (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                ) : null
+              })()}
+            </Link>
+          </div>
+        </div>
 
         {/* Todoリスト - 全体像を表示 */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">結婚式準備の進捗</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">結婚式準備の進捗</h2>
+            <button
+              onClick={toggleAllTodos}
+              className="px-4 py-2 bg-white border-2 border-pink-500 text-pink-600 rounded-lg hover:bg-pink-50 font-medium text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+              title={allTodosExpanded ? "全てのToDoを折りたたむ" : "全てのToDoを展開する"}
+            >
+              {allTodosExpanded ? (
+                <>
+                  <span>▲</span>
+                  <span>全て折りたたむ</span>
+                </>
+              ) : (
+                <>
+                  <span>▼</span>
+                  <span>全て展開する</span>
+                </>
+              )}
+            </button>
+          </div>
           <div className="space-y-4">
             {/* ステップ1: 候補探し */}
+            {visibleSteps.includes(1) && (
             <div className={`rounded-lg border-2 p-4 ${getStepColor(getStep1Status())}`}>
               <div className="flex items-start gap-3">
                 <div className="text-2xl font-bold mt-1">{getStepIcon(getStep1Status())}</div>
@@ -362,8 +489,17 @@ export default function PlanBoardPage() {
                     <h3 className="font-semibold mb-2 text-lg">
                       ① 候補探し
                     </h3>
+                    <button
+                      onClick={() => {
+                        if (allTodosExpanded) setAllTodosExpanded(false)
+                        setTodoExpanded({ ...todoExpanded, 1: !todoExpanded[1] })
+                      }}
+                      className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-all"
+                    >
+                      {todoExpanded[1] ? '▲ 閉じる' : '▼ 開く'}
+                    </button>
                   </div>
-                  {todoExpanded[1] && getStep1Status() === 'active' && (
+                  {(allTodosExpanded || todoExpanded[1]) && getStep1Status() === 'active' && (
                     <div className="text-sm mb-2">
                       <p className="mb-2">各カテゴリでベンダーを探して候補を決めましょう</p>
                       {nextActions.length > 0 && (
@@ -375,7 +511,7 @@ export default function PlanBoardPage() {
                                 {action.slots.slice(0, 5).map((slot) => (
                                   <Link
                                     key={slot.id}
-                                    href={`/search?category=${encodeURIComponent(slot.category.name)}`}
+                                    href={`/search?category=` + encodeURIComponent(slot.category.name)}
                                     className="px-2 py-1 bg-pink-600 text-white rounded text-xs hover:bg-pink-700 transition-colors"
                                   >
                                     {slot.category.name}を探す
@@ -388,18 +524,19 @@ export default function PlanBoardPage() {
                       )}
                     </div>
                   )}
-                  {todoExpanded[1] && getStep1Status() === 'completed' && (
+                  {(allTodosExpanded || todoExpanded[1]) && getStep1Status() === 'completed' && (
                     <p className="text-sm">全てのカテゴリで候補を決定しました</p>
                   )}
-                  {todoExpanded[1] && getStep1Status() === 'pending' && (
-                    <p className="text-sm">候補探しを開始しましょう</p>
-                  )}
+                    {(allTodosExpanded || todoExpanded[1]) && getStep1Status() === 'pending' && (
+                      <p className="text-sm">候補探しを開始しましょう</p>
+                    )}
                 </div>
               </div>
             </div>
+            )}
 
             {/* ステップ2: 問い合わせ */}
-            {(getStep1Status() === 'completed' || todoExpanded[2]) && (
+            {visibleSteps.includes(2) && (
               <div className={`rounded-lg border-2 p-4 ${getStepColor(getStep2Status())}`}>
                 <div className="flex items-start gap-3">
                   <div className="text-2xl font-bold mt-1">{getStepIcon(getStep2Status())}</div>
@@ -408,16 +545,17 @@ export default function PlanBoardPage() {
                       <h3 className="font-semibold mb-2 text-lg">
                         ② 問い合わせ・注文
                       </h3>
-                      {getStep1Status() === 'completed' && (
-                        <button
-                          onClick={() => setTodoExpanded({ ...todoExpanded, 2: !todoExpanded[2] })}
-                          className="text-sm text-gray-600 hover:text-gray-900"
-                        >
-                          {todoExpanded[2] ? '閉じる' : '開く'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          if (allTodosExpanded) setAllTodosExpanded(false)
+                          setTodoExpanded({ ...todoExpanded, 2: !todoExpanded[2] })
+                        }}
+                        className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-all"
+                      >
+                        {todoExpanded[2] ? '▲ 閉じる' : '▼ 開く'}
+                      </button>
                     </div>
-                    {todoExpanded[2] && getStep2Status() === 'active' && (
+                    {(allTodosExpanded || todoExpanded[2]) && getStep2Status() === 'active' && (
                       <div className="text-sm mb-2">
                         <p className="mb-3">決定したベンダーに問い合わせや注文を行いましょう</p>
                         {slotsNeedingInquiry.length > 0 && (
@@ -461,8 +599,11 @@ export default function PlanBoardPage() {
                         )}
                       </div>
                     )}
-                    {todoExpanded[2] && getStep2Status() === 'completed' && (
+                    {(allTodosExpanded || todoExpanded[2]) && getStep2Status() === 'completed' && (
                       <p className="text-sm">問い合わせ・注文が完了しました</p>
+                    )}
+                    {(allTodosExpanded || todoExpanded[2]) && getStep2Status() === 'pending' && (
+                      <p className="text-sm">前のステップが完了したら開始できます</p>
                     )}
                   </div>
                 </div>
@@ -470,7 +611,7 @@ export default function PlanBoardPage() {
             )}
 
             {/* ステップ3: タイムライン生成及び打ち合わせ */}
-            {(getStep2Status() !== 'pending' || todoExpanded[3]) && (
+            {visibleSteps.includes(3) && (
               <div className={`rounded-lg border-2 p-4 ${getStepColor(getStep3Status())}`}>
                 <div className="flex items-start gap-3">
                   <div className="text-2xl font-bold mt-1">{getStepIcon(getStep3Status())}</div>
@@ -479,35 +620,33 @@ export default function PlanBoardPage() {
                       <h3 className="font-semibold mb-2 text-lg">
                         ③ タイムライン生成及び打ち合わせ
                       </h3>
-                      {getStep2Status() !== 'pending' && (
-                        <button
-                          onClick={() => setTodoExpanded({ ...todoExpanded, 3: !todoExpanded[3] })}
-                          className="text-sm text-gray-600 hover:text-gray-900"
-                        >
-                          {todoExpanded[3] ? '閉じる' : '開く'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          if (allTodosExpanded) setAllTodosExpanded(false)
+                          setTodoExpanded({ ...todoExpanded, 3: !todoExpanded[3] })
+                        }}
+                        className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-all"
+                      >
+                        {todoExpanded[3] ? '▲ 閉じる' : '▼ 開く'}
+                      </button>
                     </div>
-                    {todoExpanded[3] && getStep3Status() === 'active' && (
+                    {(allTodosExpanded || todoExpanded[3]) && getStep3Status() === 'active' && (
                       <div className="text-sm mb-2">
                         <p className="mb-2">タイムライン作成ツールを使って、当日のスケジュールを組み立てましょう</p>
                         <div className="bg-white rounded p-3 mt-2">
-                          <p className="text-xs text-gray-600 mb-2">
-                            ※ タイムライン作成ツールは今後実装予定です
-                          </p>
-                          <button
-                            disabled
-                            className="px-4 py-2 bg-gray-400 text-white rounded text-sm cursor-not-allowed"
+                          <Link
+                            href="/couple/timeline"
+                            className="inline-block px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded text-sm font-semibold hover:from-pink-700 hover:to-rose-700 shadow-lg hover:shadow-xl transition-all"
                           >
-                            タイムライン作成ツール（準備中）
-                          </button>
+                            タイムライン作成ツールを開く
+                          </Link>
                         </div>
                       </div>
                     )}
-                    {todoExpanded[3] && getStep3Status() === 'completed' && (
+                    {(allTodosExpanded || todoExpanded[3]) && getStep3Status() === 'completed' && (
                       <p className="text-sm">タイムライン生成と打ち合わせが完了しました</p>
                     )}
-                    {todoExpanded[3] && getStep3Status() === 'pending' && (
+                    {(allTodosExpanded || todoExpanded[3]) && getStep3Status() === 'pending' && (
                       <p className="text-sm">前のステップが完了したら開始できます</p>
                     )}
                   </div>
@@ -516,7 +655,7 @@ export default function PlanBoardPage() {
             )}
 
             {/* ステップ4: 最終確認 */}
-            {(getStep3Status() !== 'pending' || todoExpanded[4]) && (
+            {visibleSteps.includes(4) && (
               <div className={`rounded-lg border-2 p-4 ${getStepColor(getStep4Status())}`}>
                 <div className="flex items-start gap-3">
                   <div className="text-2xl font-bold mt-1">{getStepIcon(getStep4Status())}</div>
@@ -525,16 +664,17 @@ export default function PlanBoardPage() {
                       <h3 className="font-semibold mb-2 text-lg">
                         ④ 最終確認
                       </h3>
-                      {getStep3Status() !== 'pending' && (
-                        <button
-                          onClick={() => setTodoExpanded({ ...todoExpanded, 4: !todoExpanded[4] })}
-                          className="text-sm text-gray-600 hover:text-gray-900"
-                        >
-                          {todoExpanded[4] ? '閉じる' : '開く'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          if (allTodosExpanded) setAllTodosExpanded(false)
+                          setTodoExpanded({ ...todoExpanded, 4: !todoExpanded[4] })
+                        }}
+                        className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-all"
+                      >
+                        {todoExpanded[4] ? '▲ 閉じる' : '▼ 開く'}
+                      </button>
                     </div>
-                    {todoExpanded[4] && getStep4Status() === 'active' && (
+                    {(allTodosExpanded || todoExpanded[4]) && getStep4Status() === 'active' && (
                       <div className="text-sm mb-2">
                         <p className="mb-3">ここまでで決まったことを確認しましょう</p>
                         <div className="bg-white rounded p-4 mt-2">
@@ -579,10 +719,10 @@ export default function PlanBoardPage() {
                         </div>
                       </div>
                     )}
-                    {todoExpanded[4] && getStep4Status() === 'completed' && (
+                    {(allTodosExpanded || todoExpanded[4]) && getStep4Status() === 'completed' && (
                       <p className="text-sm">最終確認が完了しました</p>
                     )}
-                    {todoExpanded[4] && getStep4Status() === 'pending' && (
+                    {(allTodosExpanded || todoExpanded[4]) && getStep4Status() === 'pending' && (
                       <p className="text-sm">前のステップが完了したら開始できます</p>
                     )}
                   </div>
@@ -732,7 +872,7 @@ export default function PlanBoardPage() {
 
         {/* カテゴリスロット */}
         <div className="space-y-4">
-          {planBoard.slots.map((slot) => (
+          {sortedSlots.map((slot) => (
             <div
               key={slot.id}
               className={`bg-white rounded-lg shadow-md p-6 border-2 ${getStateColor(slot.state)}`}
@@ -747,7 +887,7 @@ export default function PlanBoardPage() {
                 <div className="flex gap-2">
                   {slot.state !== 'skipped' && (
                     <Link
-                      href={`/search?category=${encodeURIComponent(slot.category.name)}`}
+                      href={`/search?category=` + encodeURIComponent(slot.category.name)}
                       className="px-4 py-2 bg-pink-600 text-white rounded-md text-sm hover:bg-pink-700 transition-colors"
                     >
                       ベンダーを検索
@@ -790,6 +930,7 @@ export default function PlanBoardPage() {
                             updateSlot(slot.id, {
                               state: 'selected',
                               selectedVendorId: slot.selectedVendorId,
+                              selectedProfileId: slot.selectedProfile?.id || null,
                             })
                           }
                           className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
@@ -797,91 +938,25 @@ export default function PlanBoardPage() {
                           決定
                         </button>
                       )}
+                      <button
+                        onClick={() => {
+                          if (window.confirm('このベンダーを削除しますか？')) {
+                            updateSlot(slot.id, {
+                              state: 'unselected',
+                              selectedVendorId: null,
+                              selectedProfileId: null,
+                            })
+                          }
+                        }}
+                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+                      >
+                        削除
+                      </button>
                     </div>
                   </div>
                 </div>
               )}
 
-              {slot.candidates.length > 0 && (
-                <div className="mb-4">
-                  <div className="text-sm font-medium mb-2 text-gray-700">候補ベンダー:</div>
-                  <div className="space-y-2">
-                    {slot.candidates.map((candidate) => (
-                      <div key={candidate.vendor.id} className="p-3 bg-white rounded-lg border border-yellow-200">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {candidate.vendor.profile?.name || candidate.vendor.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              屋号: {candidate.vendor.name}
-                            </div>
-                            {candidate.vendor.profile && (
-                              <div className="text-sm text-gray-600">
-                                {candidate.vendor.profile.priceMin && (
-                                  <>¥{candidate.vendor.profile.priceMin.toLocaleString()}〜</>
-                                )}
-                                {candidate.vendor.profile.priceMax && (
-                                  <>¥{candidate.vendor.profile.priceMax.toLocaleString()}</>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <Link
-                              href={`/vendors/${candidate.vendor.id}${candidate.profileId ? `?profileId=${candidate.profileId}` : ''}`}
-                              className="text-sm text-pink-600 hover:underline"
-                            >
-                              詳細
-                            </Link>
-                            {slot.state === 'candidate' && (
-                              <>
-                                {slot.selectedVendorId === candidate.vendor.id ? (
-                                  <button
-                                    onClick={() =>
-                                      updateSlot(slot.id, {
-                                        state: 'selected',
-                                        selectedVendorId: candidate.vendor.id,
-                                        estimatedCost: candidate.vendor.profile?.priceMin || null,
-                                      })
-                                    }
-                                    className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
-                                  >
-                                    決定
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() =>
-                                      updateSlot(slot.id, {
-                                        state: 'candidate',
-                                        selectedVendorId: candidate.vendor.id,
-                                        estimatedCost: candidate.vendor.profile?.priceMin || null,
-                                      })
-                                    }
-                                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
-                                  >
-                                    選択
-                                  </button>
-                                )}
-                              </>
-                            )}
-                            <button
-                              onClick={() => {
-                                if (window.confirm('候補から削除しますか？')) {
-                                  removeCandidate(slot.id, candidate.vendor.id)
-                                }
-                              }}
-                              className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
-                            >
-                              削除
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* アクションボタン */}
               <div className="flex flex-wrap gap-2 mb-4">
@@ -904,6 +979,7 @@ export default function PlanBoardPage() {
                       updateSlot(slot.id, {
                         state: 'unselected',
                         selectedVendorId: null,
+                        selectedProfileId: null,
                       })
                     }
                     className="px-4 py-2 bg-pink-600 text-white rounded-md text-sm hover:bg-pink-700 transition-colors"
@@ -917,6 +993,7 @@ export default function PlanBoardPage() {
                       updateSlot(slot.id, {
                         state: 'unselected',
                         selectedVendorId: null,
+                        selectedProfileId: null,
                       })
                     }
                     className="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition-colors"

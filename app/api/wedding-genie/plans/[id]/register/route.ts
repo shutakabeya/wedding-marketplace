@@ -72,19 +72,7 @@ export async function POST(
       existingSlots.map((slot) => [slot.categoryId, slot])
     )
 
-    // 既存の候補を一度に取得
-    const existingCandidates = await prisma.planBoardCandidate.findMany({
-      where: {
-        planBoardSlotId: { in: existingSlots.map((s) => s.id) },
-      },
-    })
-    const existingCandidatesMap = new Map<string, Set<string>>()
-    for (const candidate of existingCandidates) {
-      if (!existingCandidatesMap.has(candidate.planBoardSlotId)) {
-        existingCandidatesMap.set(candidate.planBoardSlotId, new Set())
-      }
-      existingCandidatesMap.get(candidate.planBoardSlotId)!.add(candidate.vendorId)
-    }
+    // candidates機能は削除、selectedVendorのみ使用
 
     // バッチ処理用のデータを準備
     const slotsToCreate: Array<{
@@ -102,21 +90,7 @@ export async function POST(
       selectedProfileId: string | null
       estimatedCost: number | null
     }> = []
-    const candidatesToCreate: Array<{
-      planBoardSlotId: string
-      vendorId: string
-      source: string
-    }> = []
-    const categorySlotData = new Map<
-      string,
-      {
-        state: string
-        selectedVendorId: string | null
-        selectedProfileId: string | null
-        estimatedCost: number | null
-        vendorIds: string[]
-      }
-    >()
+    // candidates機能は削除、selectedVendorのみ使用
 
     // 各カテゴリのスロットデータを準備
     for (const category of allCategories) {
@@ -131,27 +105,21 @@ export async function POST(
 
       const existingSlot = existingSlotsMap.get(category.id)
 
+      // 既存のスロットが'selected'または'candidate'状態の場合は上書きしない（追加形式）
+      if (existingSlot && (existingSlot.state === 'selected' || existingSlot.state === 'candidate')) {
+        continue // 既存の決定済みまたは候補状態のスロットは保持
+      }
+
       // 会場カテゴリの場合
       if (category.name === '会場') {
-        const venueIds = [
-          planData.venue.selectedVenueId,
-          ...planData.venue.alternativeVenueIds,
-        ]
-
         if (existingSlot) {
+          // 既存のスロットが'unselected'または'skipped'の場合のみ更新
           slotsToUpdate.push({
             id: existingSlot.id,
             state: 'selected',
             selectedVendorId: planData.venue.selectedVenueId,
             selectedProfileId: planData.venue.selectedProfileId,
             estimatedCost: planData.venue.estimatedPrice.mid,
-          })
-          categorySlotData.set(category.id, {
-            state: 'selected',
-            selectedVendorId: planData.venue.selectedVenueId,
-            selectedProfileId: planData.venue.selectedProfileId,
-            estimatedCost: planData.venue.estimatedPrice.mid,
-            vendorIds: venueIds,
           })
         } else {
           slotsToCreate.push({
@@ -162,20 +130,14 @@ export async function POST(
             selectedProfileId: planData.venue.selectedProfileId,
             estimatedCost: planData.venue.estimatedPrice.mid,
           })
-          categorySlotData.set(category.id, {
-            state: 'selected',
-            selectedVendorId: planData.venue.selectedVenueId,
-            selectedProfileId: planData.venue.selectedProfileId,
-            estimatedCost: planData.venue.estimatedPrice.mid,
-            vendorIds: venueIds,
-          })
         }
         continue
       }
 
       // その他のカテゴリ
       if (shouldSkip) {
-        if (existingSlot) {
+        // skipped状態は既存のselected/candidateを上書きしないため、unselectedの場合のみ更新
+        if (existingSlot && existingSlot.state === 'unselected') {
           slotsToUpdate.push({
             id: existingSlot.id,
             state: 'skipped',
@@ -183,7 +145,7 @@ export async function POST(
             selectedProfileId: null,
             estimatedCost: null,
           })
-        } else {
+        } else if (!existingSlot) {
           slotsToCreate.push({
             planBoardId: planBoard.id,
             categoryId: category.id,
@@ -202,8 +164,8 @@ export async function POST(
       const vendors = planData.categoryVendorCandidates[category.id] || []
       const selectedVendor = vendors[0]
 
-      // genieプラン登録時はcandidatesを登録しない（selectedVendorのみ）
-      // candidatesは手動でベンダーを検索・追加する場合にのみ使用
+      // selectedVendorのみ使用（candidates機能は削除）
+      // 既存のスロットが'unselected'または'skipped'の場合のみ更新
       if (existingSlot) {
         slotsToUpdate.push({
           id: existingSlot.id,
@@ -211,14 +173,6 @@ export async function POST(
           selectedVendorId: selectedVendor?.vendorId || null,
           selectedProfileId: selectedVendor?.profileId || null,
           estimatedCost: allocation?.allocatedMid || null,
-        })
-        categorySlotData.set(category.id, {
-          state: selectedVendor ? 'candidate' : 'unselected',
-          selectedVendorId: selectedVendor?.vendorId || null,
-          selectedProfileId: selectedVendor?.profileId || null,
-          estimatedCost: allocation?.allocatedMid || null,
-          // genieプラン登録時はcandidatesを登録しない
-          vendorIds: [],
         })
       } else {
         slotsToCreate.push({
@@ -228,14 +182,6 @@ export async function POST(
           selectedVendorId: selectedVendor?.vendorId || null,
           selectedProfileId: selectedVendor?.profileId || null,
           estimatedCost: allocation?.allocatedMid || null,
-        })
-        categorySlotData.set(category.id, {
-          state: selectedVendor ? 'candidate' : 'unselected',
-          selectedVendorId: selectedVendor?.vendorId || null,
-          selectedProfileId: selectedVendor?.profileId || null,
-          estimatedCost: allocation?.allocatedMid || null,
-          // genieプラン登録時はcandidatesを登録しない
-          vendorIds: [],
         })
       }
     }
@@ -268,38 +214,7 @@ export async function POST(
         )
       }
 
-      // すべてのスロットIDをマッピング（既存 + 新規作成）
-      const allSlotsMap = new Map<string, string>()
-      for (const slot of existingSlots) {
-        allSlotsMap.set(slot.categoryId, slot.id)
-      }
-      for (const slot of createdSlots) {
-        allSlotsMap.set(slot.categoryId, slot.id)
-      }
-
-      // 候補を作成
-      for (const [categoryId, slotData] of categorySlotData.entries()) {
-        const slotId = allSlotsMap.get(categoryId)
-        if (!slotId) continue
-
-        const existingVendorIds = existingCandidatesMap.get(slotId) || new Set()
-        for (const vendorId of slotData.vendorIds) {
-          if (!existingVendorIds.has(vendorId)) {
-            candidatesToCreate.push({
-              planBoardSlotId: slotId,
-              vendorId,
-              source: 'genie',
-            })
-          }
-        }
-      }
-
-      if (candidatesToCreate.length > 0) {
-        await tx.planBoardCandidate.createMany({
-          data: candidatesToCreate,
-          skipDuplicates: true,
-        })
-      }
+      // candidates機能は削除、selectedVendorのみ使用
     })
 
     return NextResponse.json({
