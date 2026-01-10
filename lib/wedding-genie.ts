@@ -299,9 +299,9 @@ async function getVendorCandidatesBatch(
         take: VENDOR_CANDIDATE_INTERNAL_COUNT,
       })
       
-      // VendorCandidate形式に変換して直接resultに設定
+      // VendorCandidate形式に変換してから、allocatedBudgetに最も近い順にソート
       const isGift = giftCategoryIds.has(categoryId)
-      result[categoryId] = fallbackProfiles.map((profile) => {
+      const fallbackProfilesWithPrice = fallbackProfiles.map((profile) => {
         let actualPrice: number | null = null
 
         if (isGift) {
@@ -331,60 +331,32 @@ async function getVendorCandidatesBatch(
         }
 
         return {
-          vendorId: profile.vendorId,
-          profileId: profile.id,
-          name: profile.name || profile.vendor.name,
-          priceMin: profile.priceMin,
-          priceMax: profile.priceMax,
+          profile,
           actualPrice,
-          plans: profile.plans && Array.isArray(profile.plans)
-            ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
-            : undefined,
-          isFallback: true, // fallback検索で取得された候補
         }
       })
-    } else {
-      // 価格でソート
-      categoryProfiles.sort((a, b) => {
-        const aPrice = a.priceMin || a.priceMax || Infinity
-        const bPrice = b.priceMin || b.priceMax || Infinity
-        return aPrice - bPrice
+
+      // allocatedBudgetに最も近い価格の順にソート（価格差の絶対値でソート）
+      fallbackProfilesWithPrice.sort((a, b) => {
+        const aPrice = a.actualPrice ?? Infinity
+        const bPrice = b.actualPrice ?? Infinity
+        const aDiff = Math.abs(aPrice - allocatedBudget)
+        const bDiff = Math.abs(bPrice - allocatedBudget)
+        return aDiff - bDiff
       })
 
-      // 上位を取得
-      categoryProfiles = categoryProfiles.slice(0, VENDOR_CANDIDATE_INTERNAL_COUNT)
-
-      // VendorCandidate形式に変換
-      result[categoryId] = categoryProfiles.map((profile) => {
-      let actualPrice: number | null = null
-
-      if (isGift) {
-        if (profile.plans && Array.isArray(profile.plans) && profile.plans.length > 0) {
-          const plans = profile.plans as Array<{ name: string; price: number; description?: string }>
-          const minPlan = plans.reduce((min, plan) => (plan.price < min.price ? plan : min))
-          actualPrice = minPlan.price * guestCount
-        } else if (profile.priceMin && profile.priceMax) {
-          actualPrice = ((profile.priceMin + profile.priceMax) / 2) * guestCount
-        } else if (profile.priceMin) {
-          actualPrice = profile.priceMin * guestCount
-        } else if (profile.priceMax) {
-          actualPrice = profile.priceMax * guestCount
-        }
-      } else {
-        if (profile.plans && Array.isArray(profile.plans) && profile.plans.length > 0) {
-          const plans = profile.plans as Array<{ name: string; price: number; description?: string }>
-          const minPlan = plans.reduce((min, plan) => (plan.price < min.price ? plan : min))
-          actualPrice = minPlan.price
-        } else if (profile.priceMin && profile.priceMax) {
-          actualPrice = (profile.priceMin + profile.priceMax) / 2
-        } else if (profile.priceMin) {
-          actualPrice = profile.priceMin
-        } else if (profile.priceMax) {
-          actualPrice = profile.priceMax
+      // 同じprofileIdの重複を除去
+      const uniqueFallbackProfiles = new Map<string, typeof fallbackProfilesWithPrice[0]>()
+      for (const item of fallbackProfilesWithPrice) {
+        const profileId = item.profile.id
+        if (!uniqueFallbackProfiles.has(profileId)) {
+          uniqueFallbackProfiles.set(profileId, item)
         }
       }
+      const selectedFallbackProfiles = Array.from(uniqueFallbackProfiles.values()).slice(0, VENDOR_CANDIDATE_INTERNAL_COUNT)
 
-      return {
+      // VendorCandidate形式に変換
+      result[categoryId] = selectedFallbackProfiles.map(({ profile, actualPrice }) => ({
         vendorId: profile.vendorId,
         profileId: profile.id,
         name: profile.name || profile.vendor.name,
@@ -394,8 +366,77 @@ async function getVendorCandidatesBatch(
         plans: profile.plans && Array.isArray(profile.plans)
           ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
           : undefined,
+        isFallback: true, // fallback検索で取得された候補
+      }))
+    } else {
+      // 実際の価格を計算してから、allocatedBudgetに最も近い順にソート
+      const profilesWithPrice = categoryProfiles.map((profile) => {
+        let actualPrice: number | null = null
+
+        if (isGift) {
+          if (profile.plans && Array.isArray(profile.plans) && profile.plans.length > 0) {
+            const plans = profile.plans as Array<{ name: string; price: number; description?: string }>
+            const minPlan = plans.reduce((min, plan) => (plan.price < min.price ? plan : min))
+            actualPrice = minPlan.price * guestCount
+          } else if (profile.priceMin && profile.priceMax) {
+            actualPrice = ((profile.priceMin + profile.priceMax) / 2) * guestCount
+          } else if (profile.priceMin) {
+            actualPrice = profile.priceMin * guestCount
+          } else if (profile.priceMax) {
+            actualPrice = profile.priceMax * guestCount
+          }
+        } else {
+          if (profile.plans && Array.isArray(profile.plans) && profile.plans.length > 0) {
+            const plans = profile.plans as Array<{ name: string; price: number; description?: string }>
+            const minPlan = plans.reduce((min, plan) => (plan.price < min.price ? plan : min))
+            actualPrice = minPlan.price
+          } else if (profile.priceMin && profile.priceMax) {
+            actualPrice = (profile.priceMin + profile.priceMax) / 2
+          } else if (profile.priceMin) {
+            actualPrice = profile.priceMin
+          } else if (profile.priceMax) {
+            actualPrice = profile.priceMax
+          }
+        }
+
+        return {
+          profile,
+          actualPrice,
+        }
+      })
+
+      // allocatedBudgetに最も近い価格の順にソート（価格差の絶対値でソート）
+      profilesWithPrice.sort((a, b) => {
+        const aPrice = a.actualPrice ?? Infinity
+        const bPrice = b.actualPrice ?? Infinity
+        const aDiff = Math.abs(aPrice - allocatedBudget)
+        const bDiff = Math.abs(bPrice - allocatedBudget)
+        return aDiff - bDiff
+      })
+
+      // 上位を取得（allocatedBudgetに最も近い候補）
+      // 同じprofileIdの重複を除去
+      const uniqueProfiles = new Map<string, typeof selectedProfiles[0]>()
+      for (const item of profilesWithPrice) {
+        const profileId = item.profile.id
+        if (!uniqueProfiles.has(profileId)) {
+          uniqueProfiles.set(profileId, item)
+        }
       }
-    })
+      const selectedProfiles = Array.from(uniqueProfiles.values()).slice(0, VENDOR_CANDIDATE_INTERNAL_COUNT)
+
+      // VendorCandidate形式に変換
+      result[categoryId] = selectedProfiles.map(({ profile, actualPrice }) => ({
+        vendorId: profile.vendorId,
+        profileId: profile.id,
+        name: profile.name || profile.vendor.name,
+        priceMin: profile.priceMin,
+        priceMax: profile.priceMax,
+        actualPrice,
+        plans: profile.plans && Array.isArray(profile.plans)
+          ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
+          : undefined,
+      }))
     }
   }
 
@@ -508,14 +549,21 @@ export async function calculateCategoryAllocations(
 
     // ベンダー候補を取得（引き出物の場合は人数を考慮）
     const searchBudget = allocatedMid
-    // バッチ取得された候補を使用、なければ個別取得
+    // バッチ取得された候補を使用、なければ個別取得（ただし、空のオブジェクトを渡された場合は候補を取得しない）
     let candidates: VendorCandidate[] = []
-    if (vendorCandidatesBatch && vendorCandidatesBatch[category.id]) {
+    if (vendorCandidatesBatch && Object.keys(vendorCandidatesBatch).length > 0 && vendorCandidatesBatch[category.id]) {
       candidates = vendorCandidatesBatch[category.id]
       vendorCandidates[category.id] = candidates
-    } else {
-      candidates = await getVendorCandidates(category.id, input.area, searchBudget, input.guestCount, isGift)
-      vendorCandidates[category.id] = candidates
+    } else if (!vendorCandidatesBatch || Object.keys(vendorCandidatesBatch).length > 0) {
+      // バッチが提供されていない、または空でない場合は個別取得
+      // ただし、空のオブジェクトが明示的に渡された場合は候補を取得しない（予算配分のみ計算）
+      if (vendorCandidatesBatch !== undefined && Object.keys(vendorCandidatesBatch).length === 0) {
+        // 空のバッチが明示的に渡された場合は候補を取得せず、空の配列を設定
+        vendorCandidates[category.id] = []
+      } else {
+        candidates = await getVendorCandidates(category.id, input.area, searchBudget, input.guestCount, isGift)
+        vendorCandidates[category.id] = candidates
+      }
     }
 
     // ベンダー候補が見つかった場合、実際の価格で配分を更新
@@ -765,8 +813,8 @@ async function getVendorCandidates(
     })
   }
 
-  return profiles.map((profile) => {
-    // 実際の価格を決定（プロフィールの価格を優先）
+  // 実際の価格を計算
+  const profilesWithPrice = profiles.map((profile) => {
     let actualPrice: number | null = null
     
     // 引き出物の場合は人数で掛ける必要がある
@@ -803,18 +851,43 @@ async function getVendorCandidates(
     }
 
     return {
-      vendorId: profile.vendorId,
-      profileId: profile.id,
-      name: profile.name || profile.vendor.name,
-      priceMin: profile.priceMin,
-      priceMax: profile.priceMax,
+      profile,
       actualPrice,
-      plans: profile.plans && Array.isArray(profile.plans) 
-        ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
-        : undefined,
-      isFallback: isFallbackSearch, // fallback検索で取得された候補かどうか
     }
   })
+
+  // allocatedBudgetに最も近い価格の順にソート（価格差の絶対値でソート）
+  profilesWithPrice.sort((a, b) => {
+    const aPrice = a.actualPrice ?? Infinity
+    const bPrice = b.actualPrice ?? Infinity
+    const aDiff = Math.abs(aPrice - allocatedBudget)
+    const bDiff = Math.abs(bPrice - allocatedBudget)
+    return aDiff - bDiff
+  })
+
+  // 同じprofileIdの重複を除去
+  const uniqueProfilesWithPrice = new Map<string, typeof profilesWithPrice[0]>()
+  for (const item of profilesWithPrice) {
+    const profileId = item.profile.id
+    if (!uniqueProfilesWithPrice.has(profileId)) {
+      uniqueProfilesWithPrice.set(profileId, item)
+    }
+  }
+  const selectedProfilesWithPrice = Array.from(uniqueProfilesWithPrice.values()).slice(0, VENDOR_CANDIDATE_INTERNAL_COUNT)
+
+  // VendorCandidate形式に変換
+  return selectedProfilesWithPrice.map(({ profile, actualPrice }) => ({
+    vendorId: profile.vendorId,
+    profileId: profile.id,
+    name: profile.name || profile.vendor.name,
+    priceMin: profile.priceMin,
+    priceMax: profile.priceMax,
+    actualPrice,
+    plans: profile.plans && Array.isArray(profile.plans) 
+      ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
+      : undefined,
+    isFallback: isFallbackSearch, // fallback検索で取得された候補かどうか
+  }))
 }
 
 // プランを生成
@@ -855,112 +928,111 @@ export async function generatePlans(input: GenieInput): Promise<PlanResult[]> {
     (cat) => !excludedCategoryNames.includes(cat.name)
   )
 
-  // バッチでベンダー候補を取得（balancedプラン用の予算で取得）
+  // まず予算配分を計算（候補は取得せず、予算配分のみ）
   const dummyPlannerCost = { min: 0, mid: 0, max: 0 }
   const { allocations: balancedAllocations } = await calculateCategoryAllocations(
     input,
     venueEstimatedPrice,
     dummyPlannerCost,
     'balanced',
-    allCategories
+    allCategories,
+    {} // 空のバッチを渡すことで、候補は取得せず予算配分のみ計算
   )
 
-  // 各カテゴリの予算を計算（バッチ取得用）
+  // 計算された予算配分からallocatedBudgetsを作成（ユーザー要望に合わせた比率）
   const allocatedBudgets = new Map<string, number>()
   const giftCategoryIds = new Set<string>()
   
-  for (const category of targetCategories) {
-    const isGift = category.name === '引き出物'
-    if (isGift) {
-      giftCategoryIds.add(category.id)
-    }
+  for (const alloc of balancedAllocations) {
+    // allocatedMidをそのまま使用（ユーザー要望に合わせた比率で計算済み）
+    allocatedBudgets.set(alloc.categoryId, alloc.allocatedMid)
     
-    let range: CategoryBudgetRange | undefined
-    if (category.name === 'デイオブプランナー') {
-      const plannerRange = PLANNER_BUDGET_RANGES.day_of
-      range = {
-        min: plannerRange.min,
-        mid: plannerRange.mid,
-        max: plannerRange.max,
-      }
-    } else if (category.name === 'プランナー') {
-      const plannerRange = PLANNER_BUDGET_RANGES.planner
-      range = {
-        min: plannerRange.min,
-        mid: plannerRange.mid,
-        max: plannerRange.max,
-      }
-    } else {
-      range = CATEGORY_BUDGET_RANGES[category.name]
-    }
-    
-    if (range) {
-      const allocatedMid = isGift ? range.mid * input.guestCount : range.mid
-      allocatedBudgets.set(category.id, allocatedMid)
+    // 引き出物カテゴリのIDを記録
+    const category = allCategories.find(c => c.id === alloc.categoryId)
+    if (category && category.name === '引き出物') {
+      giftCategoryIds.add(alloc.categoryId)
     }
   }
 
-  // バッチでベンダー候補を取得
+  // 計算された予算配分に基づいてバッチでベンダー候補を取得
   const vendorCandidatesBatch = await getVendorCandidatesBatch(
-    targetCategories.map(c => c.id),
+    balancedAllocations.map(alloc => alloc.categoryId),
     input.area,
     allocatedBudgets,
     input.guestCount,
     giftCategoryIds
   )
 
-  // 3つのプランを並列生成
-  const planTypes: Array<'balanced' | 'priority' | 'budget'> = ['balanced', 'priority', 'budget']
-  const planResults = await Promise.all(
-    planTypes.map(async (planType) => {
-      const dummyPlannerCost = { min: 0, mid: 0, max: 0 }
-      const { allocations, vendorCandidates: categoryVendors } =
-        await calculateCategoryAllocations(
-          input,
-          venueEstimatedPrice,
-          dummyPlannerCost,
-          planType,
-          allCategories,
-          vendorCandidatesBatch
-        )
+  // バッチ取得した候補を使用して最終的な配分と候補を取得
+  const { allocations, vendorCandidates: categoryVendors } =
+    await calculateCategoryAllocations(
+      input,
+      venueEstimatedPrice,
+      dummyPlannerCost,
+      'balanced', // balancedプランのみ生成
+      allCategories,
+      vendorCandidatesBatch // バッチ取得した候補を使用
+    )
 
-      // プランナー費用を取得（表示用のみ）
-      const plannerCost = getPlannerCost(input.plannerType)
+  // プランナー費用を取得（表示用のみ）
+  const plannerCost = getPlannerCost(input.plannerType)
 
-      // 合計を計算（プランナー費用は他のカテゴリと同様にallocationsに含まれている）
-      const totalMin =
-        venueEstimatedPrice * 0.9 +
-        allocations.reduce((sum, alloc) => sum + alloc.allocatedMin, 0)
-      const totalMid =
-        venueEstimatedPrice + allocations.reduce((sum, alloc) => sum + alloc.allocatedMid, 0)
-      const totalMax =
-        venueEstimatedPrice * 1.1 +
-        allocations.reduce((sum, alloc) => sum + alloc.allocatedMax, 0)
+  // 合計を計算（プランナー費用は他のカテゴリと同様にallocationsに含まれている）
+  const totalMin =
+    venueEstimatedPrice * 0.9 +
+    allocations.reduce((sum, alloc) => sum + alloc.allocatedMin, 0)
+  const totalMid =
+    venueEstimatedPrice + allocations.reduce((sum, alloc) => sum + alloc.allocatedMid, 0)
+  const totalMax =
+    venueEstimatedPrice * 1.1 +
+    allocations.reduce((sum, alloc) => sum + alloc.allocatedMax, 0)
 
-      return {
-        planType,
-        venue: {
-          selectedVenueId: mainVenue.vendorId,
-          selectedProfileId: mainVenue.profileId,
-          alternativeVenueIds: alternativeVenues,
-          estimatedPrice: {
-            min: venueEstimatedPrice * 0.9,
-            mid: venueEstimatedPrice,
-            max: venueEstimatedPrice * 1.1,
-          },
-        },
-        plannerType: input.plannerType,
-        plannerCost,
-        categoryAllocations: allocations,
-        categoryVendorCandidates: categoryVendors,
-        totals: {
-          totalMin,
-          totalMid,
-          totalMax,
-        },
-      }
-    })
-  )
+  // 各カテゴリの候補を3つまでに制限（UIで比較表示するため）
+  const limitedCategoryVendors: Record<string, VendorCandidate[]> = {}
+  for (const [categoryId, candidates] of Object.entries(categoryVendors)) {
+    limitedCategoryVendors[categoryId] = candidates.slice(0, 3)
+  }
 
-  return planResults
+  // 会場候補をVendorCandidate形式に変換して追加（最大3つ）
+  const venueCategory = await prisma.category.findFirst({
+    where: { name: '会場' },
+  })
+  if (venueCategory) {
+    const venueCandidatesAsVendor: VendorCandidate[] = venueCandidates.slice(0, 3).map((vc) => ({
+      vendorId: vc.vendorId,
+      profileId: vc.profileId,
+      name: vc.name,
+      priceMin: vc.estimatedPrice * 0.9,
+      priceMax: vc.estimatedPrice * 1.1,
+      actualPrice: vc.estimatedPrice,
+      isFallback: false,
+    }))
+    limitedCategoryVendors[venueCategory.id] = venueCandidatesAsVendor
+  }
+
+  const planResult: PlanResult = {
+    planType: 'balanced',
+    venue: {
+      selectedVenueId: mainVenue.vendorId,
+      selectedProfileId: mainVenue.profileId,
+      alternativeVenueIds: alternativeVenues,
+      estimatedPrice: {
+        min: venueEstimatedPrice * 0.9,
+        mid: venueEstimatedPrice,
+        max: venueEstimatedPrice * 1.1,
+      },
+    },
+    plannerType: input.plannerType,
+    plannerCost,
+    categoryAllocations: allocations,
+    categoryVendorCandidates: limitedCategoryVendors,
+    totals: {
+      totalMin,
+      totalMid,
+      totalMax,
+    },
+  }
+
+  // 後方互換性のため、配列として返す
+  return [planResult]
 }

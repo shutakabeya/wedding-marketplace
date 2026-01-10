@@ -22,6 +22,12 @@ export const prisma =
     },
   })
 
+// デバッグ: Prismaクライアントが正しく初期化されているか確認
+if (process.env.NODE_ENV === 'development' && typeof prisma.vendor === 'undefined') {
+  console.error('❌ Prisma client initialization error: vendor model is undefined')
+  console.error('Available models:', Object.keys(prisma).filter(k => !k.startsWith('$') && !k.startsWith('_')))
+}
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // 接続プールのタイムアウトを延長するための設定

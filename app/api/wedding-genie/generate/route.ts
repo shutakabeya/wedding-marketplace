@@ -36,40 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
       const plans = await generatePlans(input)
-
-      // 会場情報を取得
-      const venueIds = [
-        plans[0].venue.selectedVenueId,
-        ...plans[0].venue.alternativeVenueIds,
-      ]
-
-      const venues = await prisma.vendor.findMany({
-        where: {
-          id: { in: venueIds },
-        },
-        include: {
-          profiles: {
-            where: {
-              id: plans[0].venue.selectedProfileId,
-            },
-            take: 1,
-          },
-        },
-      })
-
-      const venueInfo = venues.find((v) => v.id === plans[0].venue.selectedVenueId)
+      const plan = plans[0] // 1つのプランのみ返す
 
       return NextResponse.json({
-        plans,
+        plan, // 単一のプランとして返す
+        plans, // 後方互換性のため配列も残す
         inputSnapshot: input,
-        venueInfo: venueInfo
-          ? {
-              id: venueInfo.id,
-              name: venueInfo.name,
-              profileName: venueInfo.profiles[0]?.name || null,
-              imageUrl: venueInfo.profiles[0]?.imageUrl || null,
-            }
-          : null,
       })
   } catch (error) {
     if (error instanceof z.ZodError) {

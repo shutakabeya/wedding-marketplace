@@ -34,6 +34,7 @@ function VendorDetailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const profileId = searchParams.get('profileId')
+  const returnTo = searchParams.get('returnTo')
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
   const [inquiryForm, setInquiryForm] = useState({
@@ -204,6 +205,20 @@ function VendorDetailContent() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50">
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* 戻るボタン（returnToパラメータがある場合のみ表示） */}
+        {returnTo && (
+          <div className="mb-6">
+            <button
+              onClick={() => router.push(returnTo)}
+              className="text-pink-600 hover:text-pink-700 font-medium flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              元のページに戻る
+            </button>
+          </div>
+        )}
         {/* ヘッダーセクション（プロフィール画像とロゴ） */}
         <div className="mb-8 fade-in">
           {(() => {
