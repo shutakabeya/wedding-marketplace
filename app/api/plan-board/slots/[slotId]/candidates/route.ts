@@ -68,6 +68,7 @@ export async function POST(
       create: {
         planBoardSlotId: slotId,
         vendorId: data.vendorId,
+        source: 'manual',
       },
       update: {},
       include: {

@@ -22,6 +22,7 @@ interface Vendor {
     services: string | null
     constraints: string | null
     categoryType: string | null
+    inquiryTemplateMessage: string | null
   } | null
   gallery: Array<{ id: string; imageUrl: string; caption: string | null }>
 }
@@ -68,6 +69,13 @@ function VendorDetailContent() {
       }
       const data = await res.json()
       setVendor(data.vendor)
+      // テンプレートメッセージがあれば初期値として設定
+      if (data.vendor?.profile?.inquiryTemplateMessage) {
+        setInquiryForm(prev => ({
+          ...prev,
+          message: data.vendor.profile.inquiryTemplateMessage,
+        }))
+      }
     } catch (error) {
       console.error('Failed to load vendor:', error)
     } finally {

@@ -105,6 +105,7 @@ export async function POST(
     const candidatesToCreate: Array<{
       planBoardSlotId: string
       vendorId: string
+      source: string
     }> = []
     const categorySlotData = new Map<
       string,
@@ -201,6 +202,8 @@ export async function POST(
       const vendors = planData.categoryVendorCandidates[category.id] || []
       const selectedVendor = vendors[0]
 
+      // genieプラン登録時はcandidatesを登録しない（selectedVendorのみ）
+      // candidatesは手動でベンダーを検索・追加する場合にのみ使用
       if (existingSlot) {
         slotsToUpdate.push({
           id: existingSlot.id,
@@ -214,7 +217,8 @@ export async function POST(
           selectedVendorId: selectedVendor?.vendorId || null,
           selectedProfileId: selectedVendor?.profileId || null,
           estimatedCost: allocation?.allocatedMid || null,
-          vendorIds: vendors.slice(0, 5).map((v) => v.vendorId),
+          // genieプラン登録時はcandidatesを登録しない
+          vendorIds: [],
         })
       } else {
         slotsToCreate.push({
@@ -230,7 +234,8 @@ export async function POST(
           selectedVendorId: selectedVendor?.vendorId || null,
           selectedProfileId: selectedVendor?.profileId || null,
           estimatedCost: allocation?.allocatedMid || null,
-          vendorIds: vendors.slice(0, 5).map((v) => v.vendorId),
+          // genieプラン登録時はcandidatesを登録しない
+          vendorIds: [],
         })
       }
     }
@@ -283,6 +288,7 @@ export async function POST(
             candidatesToCreate.push({
               planBoardSlotId: slotId,
               vendorId,
+              source: 'genie',
             })
           }
         }

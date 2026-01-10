@@ -44,6 +44,7 @@ export interface VendorCandidate {
   priceMax: number | null
   actualPrice: number | null // 実際の価格（プロフィールから取得）
   plans?: Array<{ name: string; price: number; description?: string }> // 料金プラン（複数ある場合）
+  isFallback?: boolean // fallback検索（エリア条件を無視）で取得された候補かどうか
 }
 
 export interface PlanResult {
@@ -336,6 +337,7 @@ async function getVendorCandidatesBatch(
           plans: profile.plans && Array.isArray(profile.plans)
             ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
             : undefined,
+          isFallback: true, // fallback検索で取得された候補
         }
       })
     } else {
@@ -719,7 +721,10 @@ async function getVendorCandidates(
   }
 
   // それでも見つからない場合、エリア条件も緩和（カテゴリのみ）
+  // ただし、fallback検索で取得された候補は除外される（genieプラン登録時にフィルタされる）
+  let isFallbackSearch = false
   if (profiles.length === 0) {
+    isFallbackSearch = true
     profiles = await prisma.vendorProfile.findMany({
       where: {
         vendor: {
@@ -790,6 +795,7 @@ async function getVendorCandidates(
       plans: profile.plans && Array.isArray(profile.plans) 
         ? (profile.plans as Array<{ name: string; price: number; description?: string }>)
         : undefined,
+      isFallback: isFallbackSearch, // fallback検索で取得された候補かどうか
     }
   })
 }

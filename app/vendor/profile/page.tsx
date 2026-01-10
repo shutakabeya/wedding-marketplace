@@ -53,6 +53,7 @@ export default function VendorProfilePage() {
     styleTagInput: '',
     services: '',
     constraints: '',
+    inquiryTemplateMessage: '',
     profileImages: [] as string[], // プロフィール画像（最大3枚）
     categoryType: 'venue' as 'venue' | 'photographer' | 'dress' | 'planner' | 'other',
     maxGuests: '',
@@ -121,6 +122,7 @@ export default function VendorProfilePage() {
       styleTagInput: '',
       services: '',
       constraints: '',
+      inquiryTemplateMessage: '',
       profileImages: [],
       categoryType: 'venue',
       maxGuests: '',
@@ -170,6 +172,7 @@ export default function VendorProfilePage() {
         styleTagInput: '',
         services: profile.services || '',
         constraints: profile.constraints || '',
+        inquiryTemplateMessage: profile.inquiryTemplateMessage || '',
         profileImages: profile.profileImages || (profile.imageUrl ? [profile.imageUrl] : []),
         categoryType: profile.categoryType || 'venue',
         maxGuests: profile.maxGuests?.toString() || '',
@@ -298,6 +301,7 @@ export default function VendorProfilePage() {
         styleTags: formData.styleTags,
         services: formData.services || null, // 提供内容（vendor_profiles.services）
         constraints: formData.constraints || null, // 制約（vendor_profiles.constraints）
+        inquiryTemplateMessage: formData.inquiryTemplateMessage || null, // お問い合わせテンプレートメッセージ
         categoryIds: formData.categoryIds, // カテゴリIDを追加
         plans: formData.plans
           .filter((p) => p.name.trim() && p.price.trim())
@@ -920,6 +924,25 @@ export default function VendorProfilePage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="制約や注意事項があれば記入してください"
             />
+          </div>
+
+          {/* お問い合わせテンプレートメッセージ */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">お問い合わせテンプレートメッセージ</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              カップルがこのプロフィールからお問い合わせを送る際に、最初から表示されるテンプレートメッセージを設定できます。
+              カップルにこの形式でお問い合わせを送ってほしい場合は、こちらに記入してください。
+            </p>
+            <textarea
+              value={formData.inquiryTemplateMessage}
+              onChange={(e) => setFormData({ ...formData, inquiryTemplateMessage: e.target.value })}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="例: こんにちは。{{プロフィール名}}についてお問い合わせさせていただきます。&#10;ご希望の挙式日:&#10;ご希望の人数:&#10;ご予算:&#10;その他ご要望:"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              テンプレートメッセージはカップルが編集可能です。参考として表示されます。
+            </p>
           </div>
 
           <div className="flex gap-4">

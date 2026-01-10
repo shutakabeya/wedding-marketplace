@@ -98,6 +98,7 @@ export async function PATCH(
             profile,
           },
           profileId: profile?.id || null,
+          source: candidate.source || 'manual',
         }
       }),
     }

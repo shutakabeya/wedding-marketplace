@@ -107,6 +107,7 @@ export async function GET(
         serviceTags: profile.serviceTags || [],
         plans: profile.plans,
         categories: profile.categories,
+        inquiryTemplateMessage: profile.inquiryTemplateMessage,
       } : null,
     }
 

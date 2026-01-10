@@ -116,6 +116,7 @@ export async function GET() {
               profile,
             },
             profileId: profile?.id || null,
+            source: candidate.source || 'manual',
           }
         }),
       })),
