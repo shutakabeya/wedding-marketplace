@@ -12,6 +12,7 @@ interface Vendor {
   logoUrl: string | null
   categories: Array<{ category: { name: string } }>
   profile: {
+    id: string
     name: string | null // 出品名（プラン名）
     imageUrl: string | null
     profileImages: string[]
