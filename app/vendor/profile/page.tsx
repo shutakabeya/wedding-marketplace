@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
@@ -21,6 +21,7 @@ interface Vendor {
     styleTags: string[]
     services: string | null
     constraints: string | null
+    access: string | null
     categoryType: 'venue' | 'photographer' | 'dress' | 'planner' | 'other'
     maxGuests: number | null
     serviceTags: string[]
@@ -40,6 +41,7 @@ export default function VendorProfilePage() {
   const [saving, setSaving] = useState(false)
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null) // 編集モード時はプロフィールID、新規作成時はnull
   const [showForm, setShowForm] = useState(false) // フォームを表示するかどうか
+  const [refreshTrigger, setRefreshTrigger] = useState(0) // 出品一覧の再読み込み用トリガー
   const [formData, setFormData] = useState({
     profileName: '', // 出品名（VendorProfile.name）
     name: '', // ベンダー名（Vendor.name、表示用のみ）
@@ -53,6 +55,7 @@ export default function VendorProfilePage() {
     styleTagInput: '',
     services: '',
     constraints: '',
+    access: '', // アクセス情報（会場向け）
     inquiryTemplateMessage: '',
     profileImages: [] as string[], // プロフィール画像（最大3枚）
     categoryType: 'venue' as 'venue' | 'photographer' | 'dress' | 'planner' | 'other',
@@ -122,6 +125,7 @@ export default function VendorProfilePage() {
       styleTagInput: '',
       services: '',
       constraints: '',
+      access: '',
       inquiryTemplateMessage: '',
       profileImages: [],
       categoryType: 'venue',
@@ -172,6 +176,7 @@ export default function VendorProfilePage() {
         styleTagInput: '',
         services: profile.services || '',
         constraints: profile.constraints || '',
+        access: profile.access || '',
         inquiryTemplateMessage: profile.inquiryTemplateMessage || '',
         profileImages: profile.profileImages || (profile.imageUrl ? [profile.imageUrl] : []),
         categoryType: profile.categoryType || 'venue',
@@ -301,6 +306,7 @@ export default function VendorProfilePage() {
         styleTags: formData.styleTags,
         services: formData.services || null, // 提供内容（vendor_profiles.services）
         constraints: formData.constraints || null, // 制約（vendor_profiles.constraints）
+        access: formData.access || null, // アクセス情報（vendor_profiles.access、会場向け）
         inquiryTemplateMessage: formData.inquiryTemplateMessage || null, // お問い合わせテンプレートメッセージ
         categoryIds: formData.categoryIds, // カテゴリIDを追加
         plans: formData.plans
@@ -349,8 +355,9 @@ export default function VendorProfilePage() {
       alert(editingProfileId ? '出品を更新しました' : '出品を作成しました')
       resetForm()
       setShowForm(false)
-      // 出品一覧を再読み込み（ProfilesManagerコンポーネントに伝える必要があるが、一旦リロードで対応）
-      window.location.reload()
+      setEditingProfileId(null)
+      // 出品一覧を再読み込み（refreshTriggerを更新してProfilesManagerを再読み込み）
+      setRefreshTrigger((prev) => prev + 1)
     } catch (error: any) {
       console.error('Failed to save profile:', error)
       alert(error.message || (editingProfileId ? '更新に失敗しました' : '作成に失敗しました'))
@@ -914,6 +921,20 @@ export default function VendorProfilePage() {
             />
           </div>
 
+          {/* アクセス（会場のみ） */}
+          {formData.categoryType === 'venue' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">アクセス</h2>
+              <textarea
+                value={formData.access}
+                onChange={(e) => setFormData({ ...formData, access: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="最寄り駅、駐車場、アクセス方法などを記入してください"
+              />
+            </div>
+          )}
+
           {/* 制約・注意事項 */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">制約・注意事項</h2>
@@ -958,6 +979,7 @@ export default function VendorProfilePage() {
               onClick={() => {
                 resetForm()
                 setShowForm(false)
+                setEditingProfileId(null)
               }}
               className="px-6 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
             >
@@ -973,7 +995,7 @@ export default function VendorProfilePage() {
           <p className="text-sm text-gray-600 mb-4">
             作成した出品を一覧で確認・編集・削除できます。デフォルト出品は検索結果に優先的に表示されます。
           </p>
-          <ProfilesManager onEdit={loadProfileForEdit} />
+          <ProfilesManager onEdit={loadProfileForEdit} refreshTrigger={refreshTrigger} />
         </div>
       </div>
     </div>
@@ -981,7 +1003,7 @@ export default function VendorProfilePage() {
 }
 
 // 出品一覧管理コンポーネント
-function ProfilesManager({ onEdit }: { onEdit: (profileId: string) => void }) {
+function ProfilesManager({ onEdit, refreshTrigger }: { onEdit: (profileId: string) => void; refreshTrigger?: number }) {
   const router = useRouter()
   const [profiles, setProfiles] = useState<Array<{
     id: string
@@ -995,11 +1017,7 @@ function ProfilesManager({ onEdit }: { onEdit: (profileId: string) => void }) {
   }>>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadProfiles()
-  }, [])
-
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     try {
       const res = await fetch('/api/vendor/profiles')
       if (res.status === 401) {
@@ -1017,8 +1035,11 @@ function ProfilesManager({ onEdit }: { onEdit: (profileId: string) => void }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
 
+  useEffect(() => {
+    loadProfiles()
+  }, [loadProfiles, refreshTrigger]) // refreshTriggerが変更されたときに再読み込み
 
   const handleDelete = async (id: string) => {
     if (!confirm('このプロフィールを削除しますか？')) return

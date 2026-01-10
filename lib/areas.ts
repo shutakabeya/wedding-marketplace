@@ -165,3 +165,43 @@ export const ALL_SELECTABLE_AREAS = [
 export function getDisplayName(id: string): string {
   return getAreaGroupName(id) || getAreaName(id) || id
 }
+
+// 検索用：ベンダープロフィールのエリア配列が、検索エリアとマッチするかどうかを判定
+// 例: プロフィールのエリアが ['zenkoku']（全国）の場合、'chiba' で検索してもマッチする
+// 例: プロフィールのエリアが ['kanto']（関東）の場合、'chiba' で検索するとマッチする
+export function isAreaMatching(profileAreas: string[], searchAreaId: string): boolean {
+  // プロフィールのエリアを展開（グループIDを個別エリアIDに変換）
+  const expandedProfileAreas = expandAreaIds(profileAreas)
+  
+  // 検索エリアのマッチングIDを取得（例: 'chiba' → ['chiba', 'kanto', 'zenkoku']）
+  const matchingSearchAreaIds = getMatchingAreaIds(searchAreaId)
+  
+  // 展開されたプロフィールエリアの中に、検索エリアのマッチングIDが含まれているかチェック
+  // または、プロフィールエリアが「全国」を含んでいる場合は常にマッチ
+  if (profileAreas.includes('zenkoku')) {
+    return true // 全国を選択している場合はすべてのエリアにマッチ
+  }
+  
+  // 展開されたプロフィールエリアの中に、検索エリア（またはそのグループ）が含まれているか
+  for (const searchAreaIdItem of matchingSearchAreaIds) {
+    if (expandedProfileAreas.includes(searchAreaIdItem)) {
+      return true
+    }
+    // プロフィールエリアの中に検索エリアを含むグループがあるかチェック
+    const searchExpanded = expandAreaIds([searchAreaIdItem])
+    for (const profileArea of profileAreas) {
+      const profileExpanded = expandAreaIds([profileArea])
+      if (profileExpanded.some(pe => searchExpanded.includes(pe))) {
+        return true
+      }
+    }
+  }
+  
+  // 既存データ（日本語の都道府県名）との互換性：表示名で比較
+  const searchDisplayName = getDisplayName(searchAreaId)
+  if (profileAreas.includes(searchDisplayName) || profileAreas.includes(searchAreaId)) {
+    return true
+  }
+  
+  return false
+}

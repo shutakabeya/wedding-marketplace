@@ -102,6 +102,7 @@ export async function GET(
         styleTags: profile.styleTags || [],
         services: profile.services,
         constraints: profile.constraints,
+        access: profile.access,
         categoryType: profile.categoryType,
         maxGuests: profile.maxGuests,
         serviceTags: profile.serviceTags || [],

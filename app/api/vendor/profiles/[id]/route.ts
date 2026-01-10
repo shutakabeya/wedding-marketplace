@@ -20,6 +20,7 @@ const updateProfileSchema = z.object({
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
+  access: z.string().optional().nullable(),
   inquiryTemplateMessage: z.string().optional().nullable(),
   plans: z
     .array(
@@ -195,6 +196,7 @@ export async function PATCH(
     if (data.styleTags !== undefined) updateData.styleTags = data.styleTags
     if (data.services !== undefined) updateData.services = data.services || null // nullを明示的に設定
     if (data.constraints !== undefined) updateData.constraints = data.constraints || null // nullを明示的に設定
+    if (data.access !== undefined) updateData.access = data.access || null // nullを明示的に設定
     if (data.inquiryTemplateMessage !== undefined) updateData.inquiryTemplateMessage = data.inquiryTemplateMessage || null // nullを明示的に設定
     if (data.isDefault !== undefined) updateData.isDefault = data.isDefault
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { getMatchingAreaIds, getDisplayName } from '@/lib/areas'
+import { getMatchingAreaIds, getDisplayName, expandAreaIds } from '@/lib/areas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,11 +37,24 @@ export async function GET(request: NextRequest) {
       
       // エリアマスタベースの検索（新規データ）と既存データ（自由入力）の両方に対応
       // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
+      // 「全国」（zenkoku）を含むプロフィールはすべてのエリア検索にマッチ
       profileFilter.OR = [
         // エリアマスタベースの検索（新規データ）
         {
           areas: {
             hasSome: matchingAreaIds,
+          },
+        },
+        // 「全国」を含むプロフィールはすべてのエリアにマッチ
+        {
+          areas: {
+            has: 'zenkoku',
+          },
+        },
+        // 既存データ（自由入力）との互換性：「全国」の日本語表記
+        {
+          areas: {
+            has: '全国',
           },
         },
         // 既存データ（自由入力）との互換性：エリア名で検索
@@ -222,19 +235,36 @@ export async function GET(request: NextRequest) {
         
         // エリアフィルタが指定されている場合、念のため再チェック（クエリの条件と一致するはず）
         // エリアマスタベースの検索と既存データ（自由入力）の両方に対応
+        // 「全国」を含むプロフィールはすべてのエリアにマッチ
         if (area) {
-          const matchingAreaIds = getMatchingAreaIds(area)
-          const areaDisplayName = getDisplayName(area)
-          
-          // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
-          const hasMatchingArea = profile.areas.some((profileAreaId: string) => 
-            matchingAreaIds.includes(profileAreaId) || 
-            profileAreaId === areaDisplayName ||
-            profileAreaId === area
-          )
-          
-          if (!hasMatchingArea) {
-            continue
+          // 「全国」を含む場合は常にマッチ
+          if (profile.areas.includes('zenkoku') || profile.areas.includes('全国')) {
+            // マッチするので処理続行
+          } else {
+            // 検索エリアのマッチングIDを取得（例: 'chiba' → ['chiba', 'kanto', 'zenkoku']）
+            const matchingAreaIds = getMatchingAreaIds(area)
+            const areaDisplayName = getDisplayName(area)
+            
+            // プロフィールのエリアを展開（グループIDを個別エリアIDに変換）
+            const expandedProfileAreas = expandAreaIds(profile.areas)
+            
+            // エリアIDがマッチするか、または既存データの文字列がマッチするかをチェック
+            const hasMatchingArea = 
+              // プロフィールのエリア（元のID）が検索エリアのマッチングIDに含まれる
+              profile.areas.some((profileAreaId: string) => 
+                matchingAreaIds.includes(profileAreaId) ||
+                profileAreaId === areaDisplayName ||
+                profileAreaId === area
+              ) ||
+              // 展開されたプロフィールエリアの中に検索エリアが含まれる
+              expandedProfileAreas.includes(area) ||
+              expandedProfileAreas.some(epa => matchingAreaIds.includes(epa)) ||
+              // 既存データ（日本語の都道府県名）との互換性
+              profile.areas.includes(areaDisplayName)
+            
+            if (!hasMatchingArea) {
+              continue
+            }
           }
         }
 

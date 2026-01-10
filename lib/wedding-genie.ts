@@ -1,6 +1,6 @@
 // Wedding Genie 生成ロジック
 import { prisma } from './prisma'
-import { getMatchingAreaIds, getDisplayName } from './areas'
+import { getMatchingAreaIds, getDisplayName, expandAreaIds } from './areas'
 import {
   CATEGORY_BUDGET_RANGES,
   PLANNER_BUDGET_RANGES,
@@ -204,6 +204,9 @@ async function getVendorCandidatesBatch(
         {
           OR: [
             { areas: { hasSome: matchingAreaIds } },
+            // 「全国」を含むプロフィールはすべてのエリアにマッチ
+            { areas: { has: 'zenkoku' } },
+            { areas: { has: '全国' } },
             areaDisplayName ? { areas: { has: areaDisplayName } } : undefined,
             { areas: { has: area } },
           ].filter(Boolean) as any,
@@ -609,6 +612,17 @@ async function getVendorCandidates(
                 hasSome: matchingAreaIds,
               },
             },
+            // 「全国」を含むプロフィールはすべてのエリアにマッチ
+            {
+              areas: {
+                has: 'zenkoku',
+              },
+            },
+            {
+              areas: {
+                has: '全国',
+              },
+            },
             // 旧フォーマット（日本語の都道府県名）
             areaDisplayName
               ? {
@@ -673,6 +687,9 @@ async function getVendorCandidates(
           {
             OR: [
               { areas: { hasSome: matchingAreaIds } },
+              // 「全国」を含むプロフィールはすべてのエリアにマッチ
+              { areas: { has: 'zenkoku' } },
+              { areas: { has: '全国' } },
               areaDisplayName ? { areas: { has: areaDisplayName } } : undefined,
               { areas: { has: area } },
             ].filter(Boolean) as any,

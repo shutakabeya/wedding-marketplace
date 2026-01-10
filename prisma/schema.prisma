@@ -106,6 +106,7 @@ model VendorProfile {
   styleTags     String[] @map("style_tags") // テイストタグ
   services      String?  @db.Text // 提供内容
   constraints   String?  @db.Text // 制約
+  access        String?  @db.Text // アクセス情報（会場向け）
   contactMethod String   @default("platform") @map("contact_method")
   inquiryTemplateMessage String? @map("inquiry_template_message") @db.Text // お問い合わせテンプレートメッセージ
   createdAt     DateTime @default(now()) @map("created_at")

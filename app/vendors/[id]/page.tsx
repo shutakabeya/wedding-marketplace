@@ -22,6 +22,7 @@ interface Vendor {
     styleTags: string[]
     services: string | null
     constraints: string | null
+    access: string | null
     categoryType: string | null
     inquiryTemplateMessage: string | null
   } | null
@@ -386,6 +387,14 @@ function VendorDetailContent() {
               <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">提供内容</h2>
                 <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.services}</p>
+              </div>
+            )}
+
+            {/* アクセス（会場のみ） */}
+            {vendor.profile?.categoryType === 'venue' && vendor.profile?.access && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">アクセス</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.access}</p>
               </div>
             )}
 

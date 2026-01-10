@@ -20,6 +20,7 @@ const createProfileSchema = z.object({
   styleTags: z.array(z.string()).optional(),
   services: z.string().optional().nullable(),
   constraints: z.string().optional().nullable(),
+  access: z.string().optional().nullable(),
   inquiryTemplateMessage: z.string().optional().nullable(),
   plans: z
     .array(
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
         styleTags: data.styleTags || [],
         services: data.services || null, // nullを明示的に設定
         constraints: data.constraints || null, // nullを明示的に設定
+        access: data.access || null, // nullを明示的に設定
         inquiryTemplateMessage: data.inquiryTemplateMessage || null, // nullを明示的に設定
         isDefault: data.isDefault || false,
         // プロフィールごとのカテゴリを設定
