@@ -114,6 +114,11 @@ export default function WeddingGeniePage() {
 
       const data = await res.json()
 
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!res.ok) {
         setError(data.error || 'プラン生成に失敗しました')
         return
@@ -169,6 +174,11 @@ export default function WeddingGeniePage() {
 
       const data = await res.json()
 
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!res.ok) {
         setError(data.error || '保存に失敗しました')
         return
@@ -201,6 +211,11 @@ export default function WeddingGeniePage() {
 
       const saveData = await saveRes.json()
 
+      if (saveRes.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!saveRes.ok) {
         setError(saveData.error || '保存に失敗しました')
         return
@@ -212,6 +227,11 @@ export default function WeddingGeniePage() {
       })
 
       const registerData = await registerRes.json()
+
+      if (registerRes.status === 401) {
+        router.push('/couple/login')
+        return
+      }
 
       if (!registerRes.ok) {
         setError(registerData.error || 'PlanBoard登録に失敗しました')

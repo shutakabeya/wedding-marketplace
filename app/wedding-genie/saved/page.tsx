@@ -29,6 +29,11 @@ export default function SavedPlansPage() {
       const res = await fetch('/api/wedding-genie/plans')
       const data = await res.json()
 
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!res.ok) {
         setError(data.error || '取得に失敗しました')
         return
@@ -50,6 +55,11 @@ export default function SavedPlansPage() {
         method: 'DELETE',
       })
 
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!res.ok) {
         const data = await res.json()
         alert(data.error || '削除に失敗しました')
@@ -70,6 +80,11 @@ export default function SavedPlansPage() {
       })
 
       const data = await res.json()
+
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
 
       if (!res.ok) {
         alert(data.error || 'PlanBoard登録に失敗しました')

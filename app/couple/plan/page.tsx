@@ -92,6 +92,11 @@ export default function PlanBoardPage() {
         body: JSON.stringify(updates),
       })
 
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
       if (!res.ok) {
         throw new Error('更新に失敗しました')
       }
@@ -110,6 +115,11 @@ export default function PlanBoardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vendorId }),
       })
+
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
 
       if (!res.ok) {
         const data = await res.json()
@@ -289,7 +299,13 @@ export default function PlanBoardPage() {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ weddingDate: e.target.value }),
-                  }).then(() => loadPlanBoard())
+                  }).then((res) => {
+                    if (res.status === 401) {
+                      router.push('/couple/login')
+                      return
+                    }
+                    loadPlanBoard()
+                  })
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-500 focus:outline-none"
               />
@@ -306,7 +322,13 @@ export default function PlanBoardPage() {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ venueArea: e.target.value }),
-                  }).then(() => loadPlanBoard())
+                  }).then((res) => {
+                    if (res.status === 401) {
+                      router.push('/couple/login')
+                      return
+                    }
+                    loadPlanBoard()
+                  })
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 placeholder="例: 東京都"
@@ -324,7 +346,13 @@ export default function PlanBoardPage() {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ guestCount: parseInt(e.target.value) || null }),
-                  }).then(() => loadPlanBoard())
+                  }).then((res) => {
+                    if (res.status === 401) {
+                      router.push('/couple/login')
+                      return
+                    }
+                    loadPlanBoard()
+                  })
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-pink-500 focus:outline-none"
                 placeholder="例: 50"

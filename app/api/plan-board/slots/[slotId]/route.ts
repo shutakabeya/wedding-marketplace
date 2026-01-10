@@ -18,7 +18,7 @@ export async function PATCH(
     const session = await getSession()
     if (!session || session.type !== 'couple') {
       return NextResponse.json(
-        { error: '認証が必要です' },
+        { error: 'ログインしてください' },
         { status: 401 }
       )
     }

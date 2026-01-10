@@ -15,7 +15,7 @@ export async function POST(
     const session = await getSession()
     if (!session || session.type !== 'couple') {
       return NextResponse.json(
-        { error: '認証が必要です' },
+        { error: 'ログインしてください' },
         { status: 401 }
       )
     }
@@ -123,7 +123,7 @@ export async function DELETE(
     const session = await getSession()
     if (!session || session.type !== 'couple') {
       return NextResponse.json(
-        { error: '認証が必要です' },
+        { error: 'ログインしてください' },
         { status: 401 }
       )
     }
