@@ -74,6 +74,10 @@ export default function WeddingGeniePage() {
   const [inputSnapshot, setInputSnapshot] = useState<any>(null)
   // 選択された候補を管理（vendorId-profileIdの形式）
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set())
+  // プラン保存用の状態
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [planName, setPlanName] = useState('')
 
   useEffect(() => {
     // カテゴリ一覧を取得（会場も含む）
@@ -195,6 +199,49 @@ export default function WeddingGeniePage() {
       }
       return newSet
     })
+  }
+
+  const handleSavePlan = async () => {
+    if (!plan || !inputSnapshot) {
+      setError('プランが生成されていません')
+      return
+    }
+
+    setSavingPlan(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/wedding-genie/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planName: planName || null,
+          inputSnapshot,
+          planData: plan,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
+      if (!res.ok) {
+        console.error('Save failed:', data)
+        setError(data.error || 'プランの保存に失敗しました')
+        return
+      }
+
+      alert('プランを保存しました')
+      setShowSaveDialog(false)
+      setPlanName('')
+    } catch (err) {
+      setError('プランの保存に失敗しました')
+    } finally {
+      setSavingPlan(false)
+    }
   }
 
   const handleRegisterSelected = async () => {
@@ -406,15 +453,24 @@ export default function WeddingGeniePage() {
                   各カテゴリの候補から気に入ったものを選択してください
                 </p>
               </div>
-              {selectedCandidates.size > 0 && (
+              <div className="flex gap-3">
                 <button
-                  onClick={handleRegisterSelected}
-                  disabled={loading}
-                  className="px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium hover:from-pink-700 hover:to-rose-700 transition-all disabled:opacity-50 shadow-lg"
+                  onClick={() => setShowSaveDialog(true)}
+                  disabled={loading || savingPlan}
+                  className="px-6 py-3 bg-white border-2 border-pink-600 text-pink-600 rounded-lg font-medium hover:bg-pink-50 transition-all disabled:opacity-50 shadow-lg"
                 >
-                  {selectedCandidates.size}件をPlanBoardに登録
+                  プランを保存
                 </button>
-              )}
+                {selectedCandidates.size > 0 && (
+                  <button
+                    onClick={handleRegisterSelected}
+                    disabled={loading}
+                    className="px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium hover:from-pink-700 hover:to-rose-700 transition-all disabled:opacity-50 shadow-lg"
+                  >
+                    {selectedCandidates.size}件をPlanBoardに登録
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -567,19 +623,74 @@ export default function WeddingGeniePage() {
               <div className="text-sm text-gray-600">
                 選択済み: {selectedCandidates.size}件
               </div>
-              <button
-                onClick={handleRegisterSelected}
-                disabled={loading || selectedCandidates.size === 0}
-                className="px-8 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium hover:from-pink-700 hover:to-rose-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {loading
-                  ? '登録中...'
-                  : selectedCandidates.size === 0
-                  ? '候補を選択してください'
-                  : `${selectedCandidates.size}件をPlanBoardに登録`}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveDialog(true)}
+                  disabled={loading || savingPlan}
+                  className="px-8 py-3 bg-white border-2 border-pink-600 text-pink-600 rounded-lg font-medium hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {savingPlan ? '保存中...' : 'プランを保存'}
+                </button>
+                <button
+                  onClick={handleRegisterSelected}
+                  disabled={loading || selectedCandidates.size === 0}
+                  className="px-8 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium hover:from-pink-700 hover:to-rose-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {loading
+                    ? '登録中...'
+                    : selectedCandidates.size === 0
+                    ? '候補を選択してください'
+                    : `${selectedCandidates.size}件をPlanBoardに登録`}
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* プラン保存ダイアログ */}
+          {showSaveDialog && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">プランを保存</h2>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    プラン名（オプション）
+                  </label>
+                  <input
+                    type="text"
+                    value={planName}
+                    onChange={(e) => setPlanName(e.target.value)}
+                    placeholder="例: 2025年春のプラン"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  />
+                </div>
+                {error && (
+                  <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                    {error}
+                  </div>
+                )}
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowSaveDialog(false)
+                      setPlanName('')
+                      setError('')
+                    }}
+                    disabled={savingPlan}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleSavePlan}
+                    disabled={savingPlan}
+                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                  >
+                    {savingPlan ? '保存中...' : '保存'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )

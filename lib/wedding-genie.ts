@@ -416,7 +416,8 @@ async function getVendorCandidatesBatch(
 
       // 上位を取得（allocatedBudgetに最も近い候補）
       // 同じprofileIdの重複を除去
-      const uniqueProfiles = new Map<string, typeof profilesWithPrice[0]>()
+      type ProfileWithPrice = { profile: typeof categoryProfiles[0]; actualPrice: number | null }
+      const uniqueProfiles = new Map<string, ProfileWithPrice>()
       for (const item of profilesWithPrice) {
         const profileId = item.profile.id
         if (!uniqueProfiles.has(profileId)) {
