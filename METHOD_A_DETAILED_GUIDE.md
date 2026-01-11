@@ -99,7 +99,7 @@ DATABASE_URL="postgresql://postgres:052899skRvsun55@db.rivfzymqtbagbjqjyget.supa
 PowerShellまたはコマンドプロンプトで、以下のコマンドを実行します：
 
 ```powershell
-npx prisma migrate deploy
+
 ```
 
 **このコマンドが行うこと**：

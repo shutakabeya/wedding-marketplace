@@ -53,7 +53,7 @@ export function Surprise4Section() {
     {
       id: 'easy',
       title: '驚くほど、楽',
-      conclusion: '結婚式が大変なのは、DIYだからではありません。「考える場所」と「決める順番」がバラバラだからです。',
+      conclusion: '結婚式が大変なのは、あなたが悪いからではありません。「考える場所」と「決める順番」がバラバラだからです。',
       whyBefore: {
         title: '今までの"しんどさ"の正体',
         content: [
@@ -94,7 +94,7 @@ export function Surprise4Section() {
       },
       data: '',
       conclusionNote: '楽になるのは、気合じゃなく設計。',
-      bgColor: 'bg-white',
+      bgColor: 'bg-gray-50',
     },
     {
       id: 'transparent',
@@ -182,17 +182,17 @@ export function Surprise4Section() {
   ]
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-8 sm:py-12 md:py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
             驚くほど◯◯
           </h2>
-          <p className="text-lg sm:text-xl text-gray-700">
+          <p className="text-base sm:text-lg md:text-xl text-gray-700">
             ― 結婚式を&quot;作り直す&quot;と、ここまで変わる ―
           </p>
-          <p className="text-base sm:text-lg text-gray-600 mt-4">
-            ここは「理屈」ではなく<br />
+          <p className="text-sm sm:text-base md:text-lg text-gray-600 mt-3 sm:mt-4 px-2">
+            ここは「理屈」ではなく<br className="hidden sm:inline" />
             &quot;あ、確かにそうだわ&quot; が連続する場所。
           </p>
         </div>
@@ -201,27 +201,27 @@ export function Surprise4Section() {
           {sections.map((section, index) => (
             <div
               key={section.id}
-              className={`${section.bgColor} py-12 lg:py-16 ${index !== sections.length - 1 ? 'border-b-2 border-gray-300' : ''}`}
+              className={`${section.bgColor} py-8 sm:py-10 md:py-12 lg:py-16 ${index !== sections.length - 1 ? 'border-b-2 border-gray-300' : ''}`}
             >
-              <div className="max-w-5xl mx-auto">
-                <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8 text-center">
+              <div className="max-w-5xl mx-auto px-2">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6 sm:mb-8 text-center">
                   {section.title}
                 </h3>
 
                 {/* 結論 */}
-                <div className="mb-10 text-center">
-                  <p className="text-xl sm:text-2xl font-semibold text-gray-900 leading-relaxed">
+                <div className="mb-6 sm:mb-8 md:mb-10 text-center">
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 leading-relaxed px-2">
                     {section.conclusion}
                   </p>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
                   {/* なぜ今までそうならなかったか */}
                   <div>
-                    <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
+                    <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
                       {section.whyBefore.title}
                     </h4>
-                    <div className="space-y-2 text-base sm:text-lg text-gray-800 leading-relaxed">
+                    <div className="space-y-2 text-sm sm:text-base md:text-lg text-gray-800 leading-relaxed">
                       {section.whyBefore.content.map((line, i) => (
                         <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold text-gray-900' : ''}>
                           {line}
@@ -231,11 +231,11 @@ export function Surprise4Section() {
                   </div>
 
                   {/* 何を変えたか */}
-                  <div>
-                    <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
+                  <div className="mt-6 md:mt-0">
+                    <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
                       {section.whatChanged.title}
                     </h4>
-                    <div className="space-y-2 text-base sm:text-lg text-gray-800 leading-relaxed">
+                    <div className="space-y-2 text-sm sm:text-base md:text-lg text-gray-800 leading-relaxed">
                       {section.whatChanged.content.map((line, i) => (
                         <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold text-gray-900' : ''}>
                           {line}
@@ -246,14 +246,14 @@ export function Surprise4Section() {
                 </div>
 
                 {/* 何が起きるか */}
-                <div className="mt-10">
-                  <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 text-center">
+                <div className="mt-6 sm:mt-8 md:mt-10">
+                  <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center">
                     {section.whatHappens.title}
                   </h4>
-                  <ul className="space-y-3 max-w-2xl mx-auto">
+                  <ul className="space-y-2 sm:space-y-3 max-w-2xl mx-auto">
                     {section.whatHappens.items.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-base sm:text-lg text-gray-800">
-                        <span className="text-pink-600 font-bold mt-1">✓</span>
+                      <li key={i} className="flex items-start gap-2 sm:gap-3 text-sm sm:text-base md:text-lg text-gray-800">
+                        <span className="text-pink-600 font-bold mt-0.5 sm:mt-1 flex-shrink-0">✓</span>
                         <span>{item}</span>
                       </li>
                     ))}
@@ -262,9 +262,9 @@ export function Surprise4Section() {
 
                 {/* データと結論ノート */}
                 {(section.data || section.conclusionNote) && (
-                  <div className="mt-8 text-center">
+                  <div className="mt-6 sm:mt-8 text-center px-2">
                     {section.data && (
-                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed mb-3">
+                      <p className="text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed mb-3">
                         {section.data.split('\n').map((line, i) => (
                           <span key={i}>
                             {line}
@@ -274,7 +274,7 @@ export function Surprise4Section() {
                       </p>
                     )}
                     {section.conclusionNote && (
-                      <p className="text-lg sm:text-xl font-semibold text-gray-900">
+                      <p className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
                         {section.conclusionNote}
                       </p>
                     )}
@@ -286,14 +286,14 @@ export function Surprise4Section() {
         </div>
 
         {/* セクション締め */}
-        <div className="mt-12 lg:mt-16 text-center bg-gray-100 rounded-xl p-8 lg:p-12 border-2 border-gray-300">
-          <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-relaxed space-y-2">
+        <div className="mt-8 sm:mt-12 lg:mt-16 text-center bg-gray-100 rounded-xl p-6 sm:p-8 lg:p-12 border-2 border-gray-300">
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 leading-relaxed space-y-2">
             <span className="block">安いのは、削ったからじゃない。</span>
             <span className="block">楽なのは、頑張ったからじゃない。</span>
             <span className="block">透明なのは、正直だからじゃない。</span>
             <span className="block">自由なのは、特別だからじゃない。</span>
           </p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-6">
+          <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-4 sm:mt-6">
             最初から、そうなるように作っただけ。
           </p>
         </div>
