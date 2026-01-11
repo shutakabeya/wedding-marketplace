@@ -58,19 +58,30 @@ export async function POST(
     }
 
     // 候補として追加（既に存在する場合はエラーにしない）
-    const candidateData = await prisma.planBoardCandidate.upsert({
+    // ユニーク制約: (planBoardSlotId, vendorId, profileId)
+    const existingCandidate = await prisma.planBoardCandidate.findFirst({
       where: {
-        planBoardSlotId_vendorId: {
-          planBoardSlotId: slotId,
-          vendorId: data.vendorId,
-        },
-      },
-      create: {
         planBoardSlotId: slotId,
         vendorId: data.vendorId,
+        profileId: data.profileId || null,
+      },
+    })
+    
+    if (existingCandidate) {
+      return NextResponse.json({
+        success: true,
+        candidate: existingCandidate,
+        message: '既に候補として登録されています',
+      })
+    }
+    
+    const candidateData = await prisma.planBoardCandidate.create({
+      data: {
+        planBoardSlotId: slotId,
+        vendorId: data.vendorId,
+        profileId: data.profileId || null,
         source: 'manual',
       },
-      update: {},
       include: {
         vendor: {
           include: {
@@ -80,6 +91,7 @@ export async function POST(
             },
           },
         },
+        profile: true,
       },
     })
 
@@ -155,13 +167,28 @@ export async function DELETE(
       )
     }
 
-    // 候補を削除
+    // 候補を削除（profileIdも考慮）
+    const { searchParams: deleteParams } = new URL(request.url)
+    const profileId = deleteParams.get('profileId')
+    
+    const candidate = await prisma.planBoardCandidate.findFirst({
+      where: {
+        planBoardSlotId: slotId,
+        vendorId: vendorId,
+        profileId: profileId || null,
+      },
+    })
+    
+    if (!candidate) {
+      return NextResponse.json(
+        { error: '候補が見つかりません' },
+        { status: 404 }
+      )
+    }
+    
     await prisma.planBoardCandidate.delete({
       where: {
-        planBoardSlotId_vendorId: {
-          planBoardSlotId: slotId,
-          vendorId: vendorId,
-        },
+        id: candidate.id,
       },
     })
 

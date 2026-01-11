@@ -5,6 +5,23 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 
+interface PlanBoardCandidate {
+  id: string
+  vendorId: string
+  profileId: string | null
+  source: string | null
+  vendor: {
+    id: string
+    name: string
+  } | null
+  profile: {
+    id: string
+    name: string | null
+    priceMin: number | null
+    priceMax: number | null
+  } | null
+}
+
 interface PlanBoardSlot {
   id: string
   category: { id: string; name: string }
@@ -13,19 +30,16 @@ interface PlanBoardSlot {
   selectedVendor: {
     id: string
     name: string // 屋号
-    profile: {
-      id?: string
-      name: string | null // 出品名（プラン名）
-      priceMin: number | null
-      priceMax: number | null
-    } | null
   } | null
   selectedProfile?: {
     id: string
     name: string | null
+    priceMin: number | null
+    priceMax: number | null
   } | null
   estimatedCost: number | null
   note: string | null
+  candidates: PlanBoardCandidate[]
 }
 
 interface PlanBoard {
@@ -768,7 +782,7 @@ export default function PlanBoardPage() {
                 >
                   <div className="text-sm text-gray-600 mb-1">{slot.category.name}</div>
                   <div className="font-semibold text-gray-900 mb-2">
-                    {slot.selectedVendor?.profile?.name || slot.selectedVendor?.name || '未設定'}
+                    {slot.selectedProfile?.name || slot.selectedVendor?.name || '未設定'}
                   </div>
                   {slot.estimatedCost && (
                     <div className="text-sm font-medium text-pink-600">
@@ -896,66 +910,127 @@ export default function PlanBoardPage() {
                 </div>
               </div>
 
-              {slot.selectedVendor && (slot.state === 'selected' || (slot.state === 'candidate' && slot.selectedVendorId)) && (
-                <div className="mb-4 p-4 bg-white rounded-lg border border-green-200">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-semibold text-gray-900 mb-1">
-                        {slot.selectedVendor.profile?.name || slot.selectedVendor.name}
-                      </div>
-                      <div className="text-xs text-gray-500 mb-1">
-                        屋号: {slot.selectedVendor.name}
-                      </div>
-                      {slot.selectedVendor.profile && (
-                        <div className="text-sm text-gray-600">
-                          {slot.selectedVendor.profile.priceMin && (
-                            <>¥{slot.selectedVendor.profile.priceMin.toLocaleString()}〜</>
-                          )}
-                          {slot.selectedVendor.profile.priceMax && (
-                            <>¥{slot.selectedVendor.profile.priceMax.toLocaleString()}</>
-                          )}
+              {/* selectedVendorとcandidatesを同じ扱いで表示 */}
+              {(() => {
+                // selectedVendorとcandidatesを統合したリストを作成
+                const allVendors: Array<{
+                  vendorId: string
+                  vendorName: string
+                  profileId: string | null
+                  profileName: string | null
+                  profilePriceMin: number | null
+                  profilePriceMax: number | null
+                  isSelected: boolean // selectedVendorかどうか
+                }> = []
+                
+                // selectedVendorを追加
+                const selectedVendorKey = slot.selectedVendor && slot.selectedProfile
+                  ? `${slot.selectedVendor.id}-${slot.selectedProfile.id}`
+                  : null
+                
+                if (slot.selectedVendor && slot.selectedProfile) {
+                  allVendors.push({
+                    vendorId: slot.selectedVendor.id,
+                    vendorName: slot.selectedVendor.name,
+                    profileId: slot.selectedProfile.id,
+                    profileName: slot.selectedProfile.name,
+                    profilePriceMin: slot.selectedProfile.priceMin,
+                    profilePriceMax: slot.selectedProfile.priceMax,
+                    isSelected: true,
+                  })
+                }
+                
+                // candidatesを追加（selectedVendorと同じvendorId-profileIdの組み合わせは除外）
+                slot.candidates.forEach((candidate) => {
+                  if (candidate.vendor && candidate.profile) {
+                    const candidateKey = `${candidate.vendor.id}-${candidate.profile.id}`
+                    // selectedVendorと同じ組み合わせの場合は除外（重複を防ぐ）
+                    if (candidateKey !== selectedVendorKey) {
+                      allVendors.push({
+                        vendorId: candidate.vendor.id,
+                        vendorName: candidate.vendor.name,
+                        profileId: candidate.profile.id,
+                        profileName: candidate.profile.name,
+                        profilePriceMin: candidate.profile.priceMin,
+                        profilePriceMax: candidate.profile.priceMax,
+                        isSelected: false,
+                      })
+                    }
+                  }
+                })
+                
+                if (allVendors.length === 0) {
+                  return null
+                }
+                
+                return allVendors.map((vendor, index) => (
+                  <div key={`${slot.id}-${vendor.vendorId}-${vendor.profileId || index}-${index}`} className="mb-4 p-4 bg-white rounded-lg border border-green-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-semibold text-gray-900 mb-1">
+                          {vendor.profileName || vendor.vendorName}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/vendors/${slot.selectedVendor.id}${slot.selectedProfile?.id ? `?profileId=${slot.selectedProfile.id}` : ''}`}
-                        className="text-sm text-pink-600 hover:underline"
-                      >
-                        詳細を見る
-                      </Link>
-                      {slot.state === 'candidate' && slot.selectedVendorId && (
-                        <button
-                          onClick={() =>
-                            updateSlot(slot.id, {
-                              state: 'selected',
-                              selectedVendorId: slot.selectedVendorId,
-                              selectedProfileId: slot.selectedProfile?.id || null,
-                            })
-                          }
-                          className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                        <div className="text-xs text-gray-500 mb-1">
+                          屋号: {vendor.vendorName}
+                        </div>
+                        {(vendor.profilePriceMin || vendor.profilePriceMax) && (
+                          <div className="text-sm text-gray-600">
+                            {vendor.profilePriceMin && (
+                              <>¥{vendor.profilePriceMin.toLocaleString()}〜</>
+                            )}
+                            {vendor.profilePriceMax && (
+                              <>¥{vendor.profilePriceMax.toLocaleString()}</>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/vendors/${vendor.vendorId}${vendor.profileId ? `?profileId=${vendor.profileId}` : ''}`}
+                          className="text-sm text-pink-600 hover:underline"
                         >
-                          決定
+                          詳細を見る
+                        </Link>
+                        {slot.state === 'candidate' && !vendor.isSelected && (
+                          <button
+                            onClick={() =>
+                              updateSlot(slot.id, {
+                                state: 'selected',
+                                selectedVendorId: vendor.vendorId,
+                                selectedProfileId: vendor.profileId,
+                              })
+                            }
+                            className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                          >
+                            決定
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (window.confirm('このベンダーを削除しますか？')) {
+                              if (vendor.isSelected) {
+                                updateSlot(slot.id, {
+                                  state: 'unselected',
+                                  selectedVendorId: null,
+                                  selectedProfileId: null,
+                                })
+                              } else {
+                                // candidatesから削除する処理は今後実装
+                                updateSlot(slot.id, {
+                                  state: slot.state,
+                                })
+                              }
+                            }
+                          }}
+                          className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+                        >
+                          削除
                         </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          if (window.confirm('このベンダーを削除しますか？')) {
-                            updateSlot(slot.id, {
-                              state: 'unselected',
-                              selectedVendorId: null,
-                              selectedProfileId: null,
-                            })
-                          }
-                        }}
-                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
-                      >
-                        削除
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ))
+              })()}
 
 
               {/* アクションボタン */}

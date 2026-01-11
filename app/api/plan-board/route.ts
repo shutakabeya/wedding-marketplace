@@ -28,6 +28,12 @@ export async function GET() {
                 },
               },
             },
+            candidates: {
+              include: {
+                vendor: true,
+                profile: true,
+              },
+            },
           },
         },
       },
@@ -52,24 +58,11 @@ export async function GET() {
             include: {
               category: true,
               selectedProfile: true,
-              selectedVendor: {
-                include: {
-                  profiles: {
-                    where: { isDefault: true },
-                    take: 1,
-                  },
-                },
-              },
+              selectedVendor: true,
               candidates: {
                 include: {
-                  vendor: {
-                    include: {
-                      profiles: {
-                        where: { isDefault: true },
-                        take: 1,
-                      },
-                    },
-                  },
+                  vendor: true,
+                  profile: true,
                 },
               },
             },
@@ -78,20 +71,24 @@ export async function GET() {
       })
     }
 
-    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
+    // selectedVendorとcandidatesを統合して返す（デフォルトプロフィールのフォールバックは使用しない）
     const planBoard = {
       ...planBoardData,
       slots: planBoardData.slots.map((slot: any) => ({
         ...slot,
         selectedVendorId: slot.selectedVendorId || null,
         selectedProfile: slot.selectedProfile || null,
-        selectedVendor: slot.selectedVendor
-          ? {
-              ...slot.selectedVendor,
-              profile: slot.selectedProfile || slot.selectedVendor.profiles[0] || null,
-            }
-          : null,
-        candidates: [], // candidates機能は削除、selectedVendorのみ使用
+        selectedVendor: slot.selectedVendor || null,
+        // candidatesを返す（profileIdを持つ候補を表示）
+        // デフォルトプロフィールのフォールバックは使用しない（candidate.profileのみ使用）
+        candidates: (slot.candidates || []).map((candidate: any) => ({
+          id: candidate.id,
+          vendorId: candidate.vendorId,
+          profileId: candidate.profileId,
+          source: candidate.source,
+          vendor: candidate.vendor || null,
+          profile: candidate.profile || null,
+        })),
       })),
     }
 

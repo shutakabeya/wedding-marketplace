@@ -12,176 +12,177 @@ datasource db {
 
 // カテゴリマスタ
 model Category {
-  id            String   @id @default(uuid())
-  name          String   @unique // 会場、写真、ケータリング等
-  displayOrder  Int?
-  createdAt     DateTime @default(now()) @map("created_at")
-  
-  vendors       VendorCategory[]
-  profiles      VendorProfileCategory[] // プロフィールカテゴリ
-  inquiries     Inquiry[]
-  planSlots     PlanBoardSlot[]
-  
+  id           String   @id @default(uuid())
+  name         String   @unique // 会場、写真、ケータリング等
+  displayOrder Int?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  vendors   VendorCategory[]
+  profiles  VendorProfileCategory[] // プロフィールカテゴリ
+  inquiries Inquiry[]
+  planSlots PlanBoardSlot[]
+
   @@map("categories")
 }
 
 // カップル
 model Couple {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  name          String
-  weddingDate   DateTime? @map("wedding_date") @db.Date
-  area          String?
-  guestCount    Int?     @map("guest_count")
-  budgetRangeMin Int?   @map("budget_range_min")
-  budgetRangeMax Int?   @map("budget_range_max")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  inquiries     Inquiry[]
-  favorites     Favorite[]
-  planBoard     PlanBoard?
-  reviews       Review[]
-  geniePlans    GeniePlan[]
-  timelines     Timeline[]
-  
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String    @map("password_hash")
+  name           String
+  weddingDate    DateTime? @map("wedding_date") @db.Date
+  area           String?
+  guestCount     Int?      @map("guest_count")
+  budgetRangeMin Int?      @map("budget_range_min")
+  budgetRangeMax Int?      @map("budget_range_max")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  inquiries  Inquiry[]
+  favorites  Favorite[]
+  planBoard  PlanBoard?
+  reviews    Review[]
+  geniePlans GeniePlan[]
+  timelines  Timeline[]
+
   @@map("couples")
 }
 
 // ベンダー
 model Vendor {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  name          String   // 屋号
-  bio           String?  @db.Text
-  logoUrl       String?  @map("logo_url") // ロゴ画像URL
-  status        String   @default("pending") // pending/approved/rejected/suspended
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  approvedAt    DateTime? @map("approved_at")
-  approvedById  String?  @map("approved_by")
-  
-  approvedBy    Admin?   @relation("VendorApprovals", fields: [approvedById], references: [id])
-  categories    VendorCategory[]
-  profiles      VendorProfile[]
-  gallery       VendorGallery[]
-  inquiries     Inquiry[]
-  favorites     Favorite[]
-  planSlots     PlanBoardSlot[]
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String // 屋号
+  bio          String?   @db.Text
+  logoUrl      String?   @map("logo_url") // ロゴ画像URL
+  status       String    @default("pending") // pending/approved/rejected/suspended
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  approvedAt   DateTime? @map("approved_at")
+  approvedById String?   @map("approved_by")
+
+  approvedBy     Admin?               @relation("VendorApprovals", fields: [approvedById], references: [id])
+  categories     VendorCategory[]
+  profiles       VendorProfile[]
+  gallery        VendorGallery[]
+  inquiries      Inquiry[]
+  favorites      Favorite[]
+  planSlots      PlanBoardSlot[]
   planCandidates PlanBoardCandidate[]
-  reviews       Review[]
-  
+  reviews        Review[]
+
   @@map("vendors")
 }
 
 // ベンダーカテゴリ（多対多）
 model VendorCategory {
-  vendorId    String   @map("vendor_id")
-  categoryId  String   @map("category_id")
-  
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
+  vendorId   String @map("vendor_id")
+  categoryId String @map("category_id")
+
+  vendor   Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   @@id([vendorId, categoryId])
   @@map("vendor_categories")
 }
 
 // ベンダープロフィール詳細
 model VendorProfile {
-  id            String   @id @default(uuid())
-  vendorId      String   @map("vendor_id")
-  name          String?  // プロフィール名（例: "東京エリア向け"）
-  isDefault     Boolean  @default(false) @map("is_default") // デフォルトプロフィール
-  imageUrl      String?  @map("image_url") // プロフィール画像URL
-  profileImages String[] @map("profile_images") // プロフィール画像URL配列（最大3枚）
-  categoryType  String   @default("venue") @map("category_type") // 業種カテゴリ: venue/photographer/dress/planner/other
-  maxGuests     Int?     @map("max_guests") // 最大ゲスト数（会場向け）
-  serviceTags   String[] @map("service_tags") // サービス特徴タグ（カテゴリごとに意味づけ）
-  plans         Json?    @map("plans") // 料金プラン配列（name, price, description）
-  areas         String[] // 対応エリア配列
-  priceMin      Int?     @map("price_min")
-  priceMax      Int?     @map("price_max")
-  styleTags     String[] @map("style_tags") // テイストタグ
-  services      String?  @db.Text // 提供内容
-  constraints   String?  @db.Text // 制約
-  access        String?  @db.Text // アクセス情報（会場向け）
-  contactMethod String   @default("platform") @map("contact_method")
-  inquiryTemplateMessage String? @map("inquiry_template_message") @db.Text // お問い合わせテンプレートメッセージ
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  categories    VendorProfileCategory[] // プロフィールごとのカテゴリ
-  planBoardSlots PlanBoardSlot[] // PlanBoardで選択されたプロフィール
-  
-  @@map("vendor_profiles")
+  id                     String   @id @default(uuid())
+  vendorId               String   @map("vendor_id")
+  name                   String? // プロフィール名（例: "東京エリア向け"）
+  isDefault              Boolean  @default(false) @map("is_default") // デフォルトプロフィール
+  imageUrl               String?  @map("image_url") // プロフィール画像URL
+  profileImages          String[] @map("profile_images") // プロフィール画像URL配列（最大3枚）
+  categoryType           String   @default("venue") @map("category_type") // 業種カテゴリ: venue/photographer/dress/planner/other
+  maxGuests              Int?     @map("max_guests") // 最大ゲスト数（会場向け）
+  serviceTags            String[] @map("service_tags") // サービス特徴タグ（カテゴリごとに意味づけ）
+  plans                  Json?    @map("plans") // 料金プラン配列（name, price, description）
+  areas                  String[] // 対応エリア配列
+  priceMin               Int?     @map("price_min")
+  priceMax               Int?     @map("price_max")
+  styleTags              String[] @map("style_tags") // テイストタグ
+  services               String?  @db.Text // 提供内容
+  constraints            String?  @db.Text // 制約
+  access                 String?  @db.Text // アクセス情報（会場向け）
+  contactMethod          String   @default("platform") @map("contact_method")
+  inquiryTemplateMessage String?  @map("inquiry_template_message") @db.Text // お問い合わせテンプレートメッセージ
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  vendor              Vendor                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categories          VendorProfileCategory[] // プロフィールごとのカテゴリ
+  planBoardSlots      PlanBoardSlot[] // PlanBoardで選択されたプロフィール
+  planBoardCandidates PlanBoardCandidate[] // PlanBoardの候補として登録されたプロフィール
+
   @@index([vendorId])
+  @@map("vendor_profiles")
 }
 
 // プロフィールカテゴリ（プロフィールごとのカテゴリ）
 model VendorProfileCategory {
-  profileId    String   @map("profile_id")
-  categoryId  String   @map("category_id")
-  
-  profile      VendorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
+  profileId  String @map("profile_id")
+  categoryId String @map("category_id")
+
+  profile  VendorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  category Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   @@id([profileId, categoryId])
   @@map("vendor_profile_categories")
 }
 
 // ベンダーギャラリー
 model VendorGallery {
-  id          String   @id @default(uuid())
-  vendorId    String   @map("vendor_id")
-  imageUrl    String   @map("image_url")
-  caption     String?  @db.Text
-  displayOrder Int?    @map("display_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
+  id           String   @id @default(uuid())
+  vendorId     String   @map("vendor_id")
+  imageUrl     String   @map("image_url")
+  caption      String?  @db.Text
+  displayOrder Int?     @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
   @@map("vendor_galleries")
 }
 
 // 管理者
 model Admin {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  name          String
-  createdAt     DateTime @default(now()) @map("created_at")
-  
-  vendorApprovals Vendor[] @relation("VendorApprovals")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  vendorApprovals Vendor[]        @relation("VendorApprovals")
   threadMessages  ThreadMessage[]
-  
+
   @@map("admins")
 }
 
 // 問い合わせ
 model Inquiry {
-  id            String   @id @default(uuid())
-  coupleId      String   @map("couple_id")
-  vendorId      String   @map("vendor_id")
-  categoryId    String?  @map("category_id")
-  status        String   @default("new") // new/proposing/contracted/declined/completed
-  weddingDate   DateTime? @map("wedding_date") @db.Date
-  area          String?
-  guestCount    Int?     @map("guest_count")
-  budgetRangeMin Int?    @map("budget_range_min")
-  budgetRangeMax Int?    @map("budget_range_max")
-  message       String?  @db.Text
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category      Category? @relation(fields: [categoryId], references: [id])
-  messages      ThreadMessage[]
-  reviews       Review[]
-  
+  id             String    @id @default(uuid())
+  coupleId       String    @map("couple_id")
+  vendorId       String    @map("vendor_id")
+  categoryId     String?   @map("category_id")
+  status         String    @default("new") // new/proposing/contracted/declined/completed
+  weddingDate    DateTime? @map("wedding_date") @db.Date
+  area           String?
+  guestCount     Int?      @map("guest_count")
+  budgetRangeMin Int?      @map("budget_range_min")
+  budgetRangeMax Int?      @map("budget_range_max")
+  message        String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  couple   Couple          @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  vendor   Vendor          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category Category?       @relation(fields: [categoryId], references: [id])
+  messages ThreadMessage[]
+  reviews  Review[]
+
   @@map("inquiries")
 }
 
@@ -195,64 +196,66 @@ model ThreadMessage {
   attachments String[] // 画像URL配列
   createdAt   DateTime @default(now()) @map("created_at")
   adminId     String?  @map("admin_id")
-  
-  inquiry     Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-  admin       Admin?   @relation(fields: [adminId], references: [id])
-  
+
+  inquiry Inquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  admin   Admin?  @relation(fields: [adminId], references: [id])
+
   @@map("thread_messages")
 }
 
 // PlanBoard（結婚式組み立てボード）
 model PlanBoard {
-  id          String   @id @default(uuid())
-  coupleId    String   @unique @map("couple_id")
+  id          String    @id @default(uuid())
+  coupleId    String    @unique @map("couple_id")
   weddingDate DateTime? @map("wedding_date") @db.Date
-  venueArea   String?  @map("venue_area")
-  guestCount  Int?     @map("guest_count")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  couple      Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  slots       PlanBoardSlot[]
-  
+  venueArea   String?   @map("venue_area")
+  guestCount  Int?      @map("guest_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  couple Couple          @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  slots  PlanBoardSlot[]
+
   @@map("plan_boards")
 }
 
 // PlanBoardスロット（カテゴリごとの選択状態）
 model PlanBoardSlot {
-  id              String   @id @default(uuid())
-  planBoardId     String   @map("plan_board_id")
-  categoryId      String   @map("category_id")
-  state           String   @default("unselected") // unselected/candidate/selected/skipped
-  selectedVendorId String?  @map("selected_vendor_id")
-  selectedProfileId String? @map("selected_profile_id")
-  note            String?  @db.Text
-  estimatedCost   Int?     @map("estimated_cost")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  
-  planBoard       PlanBoard @relation(fields: [planBoardId], references: [id], onDelete: Cascade)
-  category        Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  selectedVendor  Vendor?   @relation(fields: [selectedVendorId], references: [id], onDelete: SetNull)
-  selectedProfile VendorProfile? @relation(fields: [selectedProfileId], references: [id], onDelete: SetNull)
+  id                String   @id @default(uuid())
+  planBoardId       String   @map("plan_board_id")
+  categoryId        String   @map("category_id")
+  state             String   @default("unselected") // unselected/candidate/selected/skipped
+  selectedVendorId  String?  @map("selected_vendor_id")
+  selectedProfileId String?  @map("selected_profile_id")
+  note              String?  @db.Text
+  estimatedCost     Int?     @map("estimated_cost")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  planBoard       PlanBoard            @relation(fields: [planBoardId], references: [id], onDelete: Cascade)
+  category        Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  selectedVendor  Vendor?              @relation(fields: [selectedVendorId], references: [id], onDelete: SetNull)
+  selectedProfile VendorProfile?       @relation(fields: [selectedProfileId], references: [id], onDelete: SetNull)
   candidates      PlanBoardCandidate[]
-  
+
   @@unique([planBoardId, categoryId])
   @@map("plan_board_slots")
 }
 
 // 候補ベンダー（candidate状態のベンダー）
 model PlanBoardCandidate {
-  id            String   @id @default(uuid())
-  planBoardSlotId String @map("plan_board_slot_id")
-  vendorId      String   @map("vendor_id")
-  source        String?  @default("manual") // "genie" | "manual" - genieから登録したかどうか
-  createdAt     DateTime @default(now()) @map("created_at")
-  
-  planBoardSlot PlanBoardSlot @relation(fields: [planBoardSlotId], references: [id], onDelete: Cascade)
-  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
-  @@unique([planBoardSlotId, vendorId])
+  id              String   @id @default(uuid())
+  planBoardSlotId String   @map("plan_board_slot_id")
+  vendorId        String   @map("vendor_id")
+  profileId       String?  @map("profile_id") // プロフィールID（同じベンダーの異なるプロフィールを区別）
+  source          String?  @default("manual") // "genie" | "manual" - genieから登録したかどうか
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  planBoardSlot PlanBoardSlot  @relation(fields: [planBoardSlotId], references: [id], onDelete: Cascade)
+  vendor        Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  profile       VendorProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@unique([planBoardSlotId, vendorId, profileId])
   @@map("plan_board_candidates")
 }
 
@@ -262,10 +265,10 @@ model Favorite {
   coupleId  String   @map("couple_id")
   vendorId  String   @map("vendor_id")
   createdAt DateTime @default(now()) @map("created_at")
-  
-  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
   @@unique([coupleId, vendorId])
   @@map("favorites")
 }
@@ -276,14 +279,14 @@ model Review {
   coupleId  String   @map("couple_id")
   vendorId  String   @map("vendor_id")
   inquiryId String?  @map("inquiry_id")
-  rating    Int      // 1-5
+  rating    Int // 1-5
   comment   String?  @db.Text
   createdAt DateTime @default(now()) @map("created_at")
-  
-  couple    Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  inquiry   Inquiry? @relation(fields: [inquiryId], references: [id])
-  
+
+  couple  Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  vendor  Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  inquiry Inquiry? @relation(fields: [inquiryId], references: [id])
+
   @@unique([coupleId, vendorId, inquiryId])
   @@map("reviews")
 }
@@ -297,48 +300,48 @@ model GeniePlan {
   planData      Json     @map("plan_data") // プランデータ（PlanResult）
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  
-  @@map("genie_plans")
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
   @@index([coupleId])
+  @@map("genie_plans")
 }
 
 // タイムライン（結婚式当日の進行）
 model Timeline {
-  id            String   @id @default(uuid())
-  coupleId      String   @map("couple_id")
-  title         String   @default("結婚式当日のタイムライン")
-  startTime     String   @default("09:00") // 開始時刻（HH:mm形式）
-  shareToken    String?  @unique @map("share_token") // 共有用トークン（閲覧専用）
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  couple        Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
-  items         TimelineItem[]
-  
-  @@map("timelines")
+  id         String   @id @default(uuid())
+  coupleId   String   @map("couple_id")
+  title      String   @default("結婚式当日のタイムライン")
+  startTime  String   @default("09:00") // 開始時刻（HH:mm形式）
+  shareToken String?  @unique @map("share_token") // 共有用トークン（閲覧専用）
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  couple Couple         @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  items  TimelineItem[]
+
   @@index([coupleId])
   @@index([shareToken])
+  @@map("timelines")
 }
 
 // タイムライン項目
 model TimelineItem {
-  id            String   @id @default(uuid())
-  timelineId    String   @map("timeline_id")
-  order         Int      // 並び順
-  startTime     String?  @map("start_time") // 開始時刻（HH:mm形式、nullの場合は自動計算）
-  duration      Int      @default(30) // 所要時間（分）
-  isFixedTime   Boolean  @default(false) @map("is_fixed_time") // 開始時刻が固定かどうか
-  content       String   // 内容（例: "受付開始"、"挙式"）
-  stakeholders  String[] // 関係者（例: ["新郎新婦", "ゲスト", "スタッフ"]）
-  location      String?  @db.Text // 場所
-  notes         String?  @db.Text // メモ
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  timeline      Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
-  
-  @@map("timeline_items")
+  id           String   @id @default(uuid())
+  timelineId   String   @map("timeline_id")
+  order        Int // 並び順
+  startTime    String?  @map("start_time") // 開始時刻（HH:mm形式、nullの場合は自動計算）
+  duration     Int      @default(30) // 所要時間（分）
+  isFixedTime  Boolean  @default(false) @map("is_fixed_time") // 開始時刻が固定かどうか
+  content      String // 内容（例: "受付開始"、"挙式"）
+  stakeholders String[] // 関係者（例: ["新郎新婦", "ゲスト", "スタッフ"]）
+  location     String?  @db.Text // 場所
+  notes        String?  @db.Text // メモ
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+
   @@index([timelineId, order])
+  @@map("timeline_items")
 }

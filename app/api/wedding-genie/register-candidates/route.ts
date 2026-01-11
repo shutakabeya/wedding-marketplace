@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
     const candidatesToCreate: Array<{
       planBoardSlotId: string
       vendorId: string
+      profileId: string | null
       source: string
     }> = []
 
@@ -170,6 +171,7 @@ export async function POST(request: NextRequest) {
           candidatesToCreate.push({
             planBoardSlotId: existingSlot.id,
             vendorId: candidate.vendorId,
+            profileId: candidate.profileId,
             source: 'genie',
           })
           console.log(`Added candidate ${i + 1} to PlanBoardCandidate list for slot ${existingSlot.id}`)
@@ -195,6 +197,48 @@ export async function POST(request: NextRequest) {
     console.log('Slots to create:', slotsToCreate.length)
     console.log('Slots to update:', slotsToUpdate.length)
     console.log('Candidates to create:', candidatesToCreate.length)
+
+    // トランザクション前に既存のPlanBoardCandidateをバッチ取得して重複を事前排除
+    // これにより、トランザクション内でエラーが発生することを防ぐ
+    // ユニーク制約: (planBoardSlotId, vendorId, profileId)
+    const existingCandidateKeys = new Set<string>()
+    if (candidatesToCreate.length > 0) {
+      const slotIds = Array.from(new Set(candidatesToCreate.map((c) => c.planBoardSlotId)))
+      const existingCandidates = await prisma.planBoardCandidate.findMany({
+        where: {
+          planBoardSlotId: { in: slotIds },
+        },
+        select: {
+          planBoardSlotId: true,
+          vendorId: true,
+          profileId: true,
+        },
+      })
+      
+      // 既存レコードのキーを作成（ユニーク制約に基づく: slotId-vendorId-profileId）
+      for (const candidate of existingCandidates) {
+        const key = `${candidate.planBoardSlotId}-${candidate.vendorId}-${candidate.profileId || 'null'}`
+        existingCandidateKeys.add(key)
+      }
+      
+      console.log(`Found ${existingCandidateKeys.size} existing candidates out of ${candidatesToCreate.length} candidates to create`)
+      if (existingCandidateKeys.size > 0) {
+        console.log('Existing candidate keys:', Array.from(existingCandidateKeys).slice(0, 5), existingCandidateKeys.size > 5 ? '...' : '')
+      }
+    }
+    
+    // 既存レコードを除外（ユニーク制約に基づく重複チェック）
+    // 同じvendorIdでも異なるprofileIdは別の候補として扱える
+    const filteredCandidatesToCreate = candidatesToCreate.filter((candidate) => {
+      const key = `${candidate.planBoardSlotId}-${candidate.vendorId}-${candidate.profileId || 'null'}`
+      if (existingCandidateKeys.has(key)) {
+        console.log(`Skipping duplicate candidate: slotId=${candidate.planBoardSlotId}, vendorId=${candidate.vendorId}, profileId=${candidate.profileId}`)
+        return false
+      }
+      return true
+    })
+    
+    console.log(`Filtered candidates to create: ${filteredCandidatesToCreate.length} (removed ${candidatesToCreate.length - filteredCandidatesToCreate.length} duplicates)`)
 
     // 除外カテゴリを skipped 状態で登録（既存のselectedを上書きしない）
     const excludedCategoryNames = inputSnapshot.excludedCategories || []
@@ -241,8 +285,11 @@ export async function POST(request: NextRequest) {
     }
 
     // トランザクションで一括処理
+    // タイムアウトを15秒に設定（デフォルトは5秒、大量のデータを処理する場合に必要）
+    let actualNewSlotCandidatesCount = 0 // 実際に作成された新規スロット用候補の数
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(
+        async (tx) => {
         // スロットを作成
         const createdSlots: Array<{ id: string; categoryId: string }> = []
         if (slotsToCreate.length > 0) {
@@ -252,22 +299,72 @@ export async function POST(request: NextRequest) {
               data: slotData,
             })
             createdSlots.push({ id: created.id, categoryId: created.categoryId })
+            console.log(`Created slot ${created.id} for category ${created.categoryId}`)
           }
           console.log('Slots created successfully')
           
           // 作成されたスロットに対して、2つ目以降の候補をPlanBoardCandidateに登録
-          for (const createdSlot of createdSlots) {
-            const categoryCandidates = candidatesByCategory.get(createdSlot.categoryId) || []
-            for (let i = 1; i < categoryCandidates.length; i++) {
-              const candidate = categoryCandidates[i]
-              await tx.planBoardCandidate.create({
-                data: {
-                  planBoardSlotId: createdSlot.id,
-                  vendorId: candidate.vendorId,
-                  source: 'genie',
-                },
-              })
-              console.log(`Added candidate ${i + 1} to PlanBoardCandidate for newly created slot ${createdSlot.id}`)
+          // 新規作成されたスロットなので既存レコードがないはずだが、念のためチェック
+          if (createdSlots.length > 0) {
+            const newSlotIds = createdSlots.map((s) => s.id)
+            const newSlotExistingCandidates = await tx.planBoardCandidate.findMany({
+              where: {
+                planBoardSlotId: { in: newSlotIds },
+              },
+              select: {
+                planBoardSlotId: true,
+                vendorId: true,
+                profileId: true,
+              },
+            })
+            
+            console.log(`Found ${newSlotExistingCandidates.length} existing candidates for new slots (should be 0)`)
+            
+            const newSlotExistingKeys = new Set(
+              newSlotExistingCandidates.map(
+                (c) => `${c.planBoardSlotId}-${c.vendorId}-${c.profileId || 'null'}`
+              )
+            )
+            
+            const newSlotCandidatesToCreate: Array<{
+              planBoardSlotId: string
+              vendorId: string
+              profileId: string | null
+              source: string
+            }> = []
+            
+            for (const createdSlot of createdSlots) {
+              const categoryCandidates = candidatesByCategory.get(createdSlot.categoryId) || []
+              console.log(`Processing ${categoryCandidates.length} candidates for new slot ${createdSlot.id} (category ${createdSlot.categoryId})`)
+              for (let i = 1; i < categoryCandidates.length; i++) {
+                const candidate = categoryCandidates[i]
+                const key = `${createdSlot.id}-${candidate.vendorId}-${candidate.profileId || 'null'}`
+                if (!newSlotExistingKeys.has(key)) {
+                  newSlotCandidatesToCreate.push({
+                    planBoardSlotId: createdSlot.id,
+                    vendorId: candidate.vendorId,
+                    profileId: candidate.profileId,
+                    source: 'genie',
+                  })
+                  console.log(`Added candidate ${i + 1}/${categoryCandidates.length} for new slot ${createdSlot.id}`)
+                } else {
+                  console.log(`Skipped duplicate candidate for new slot ${createdSlot.id}`)
+                }
+              }
+            }
+            
+            console.log(`New slot candidates to create: ${newSlotCandidatesToCreate.length}`)
+            
+            if (newSlotCandidatesToCreate.length > 0) {
+              await Promise.all(
+                newSlotCandidatesToCreate.map((candidateData) =>
+                  tx.planBoardCandidate.create({
+                    data: candidateData,
+                  })
+                )
+              )
+              actualNewSlotCandidatesCount = newSlotCandidatesToCreate.length
+              console.log(`Added ${actualNewSlotCandidatesCount} candidates to newly created slots`)
             }
           }
         }
@@ -292,30 +389,23 @@ export async function POST(request: NextRequest) {
         }
 
         // PlanBoardCandidateを作成（既存スロット用）
-        if (candidatesToCreate.length > 0) {
-          console.log('Creating PlanBoardCandidates:', candidatesToCreate.length)
-          // 重複を避けるため、既存の候補を確認
-          for (const candidateData of candidatesToCreate) {
-            const existing = await tx.planBoardCandidate.findUnique({
-              where: {
-                planBoardSlotId_vendorId: {
-                  planBoardSlotId: candidateData.planBoardSlotId,
-                  vendorId: candidateData.vendorId,
-                },
-              },
-            })
-            if (!existing) {
-              await tx.planBoardCandidate.create({
+        // 既にトランザクション前で重複を排除済みなので、エラーハンドリング不要
+        if (filteredCandidatesToCreate.length > 0) {
+          console.log('Creating PlanBoardCandidates:', filteredCandidatesToCreate.length)
+          await Promise.all(
+            filteredCandidatesToCreate.map((candidateData) =>
+              tx.planBoardCandidate.create({
                 data: candidateData,
               })
-              console.log(`Created PlanBoardCandidate for slot ${candidateData.planBoardSlotId}, vendor ${candidateData.vendorId}`)
-            } else {
-              console.log(`PlanBoardCandidate already exists for slot ${candidateData.planBoardSlotId}, vendor ${candidateData.vendorId}`)
-            }
-          }
+            )
+          )
           console.log('PlanBoardCandidates created successfully')
         }
-      })
+        },
+        {
+          timeout: 15000, // 15秒に設定（デフォルトは5秒）
+        }
+      )
       console.log('Transaction completed successfully')
     } catch (txError) {
       console.error('Transaction error:', txError)
@@ -326,16 +416,11 @@ export async function POST(request: NextRequest) {
     // 各カテゴリの最初の候補はスロットに、残りはPlanBoardCandidateに登録される
     // 会場がselectedCandidatesに含まれていない場合は、会場も1件としてカウント
     const totalSlots = slotsToCreate.length + slotsToUpdate.length
-    const totalCandidates = candidatesToCreate.length
+    const totalCandidates = filteredCandidatesToCreate.length
     
     // 新規作成されたスロットに対して追加された候補もカウント
-    let additionalCandidatesFromNewSlots = 0
-    for (const slotData of slotsToCreate) {
-      const categoryCandidates = candidatesByCategory.get(slotData.categoryId) || []
-      if (categoryCandidates.length > 1) {
-        additionalCandidatesFromNewSlots += categoryCandidates.length - 1
-      }
-    }
+    // 実際にトランザクション内で作成された数を使用
+    const additionalCandidatesFromNewSlots = actualNewSlotCandidatesCount
     
     const totalRegistered = totalSlots + totalCandidates + additionalCandidatesFromNewSlots
     
