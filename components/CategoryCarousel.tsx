@@ -70,15 +70,18 @@ export function CategoryCarousel({ categoryName }: CategoryCarouselProps) {
 
   return (
     <section className="mb-8 sm:mb-10 md:mb-12 fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
+      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
         <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
           {categoryName}
         </h3>
         <Link
           href={`/search?category=${encodeURIComponent(categoryName)}`}
-          className="text-xs sm:text-sm font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors whitespace-nowrap"
+          className="text-sm font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors whitespace-nowrap flex items-center gap-1"
         >
-          このカテゴリのベンダーをもっと見る →
+          もっと見る
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </Link>
       </div>
 

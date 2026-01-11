@@ -37,7 +37,7 @@ export function Header() {
 
             {/* 中央に配置されたタイトル */}
             <div className="flex-1 flex justify-center">
-              <Link href="/" className="text-3xl font-bold bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 bg-clip-text text-transparent tracking-tight hover:scale-105 transition-transform inline-block">
+              <Link href="/" className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 bg-clip-text text-transparent tracking-tight hover:scale-105 transition-transform inline-block">
                 wedding market
               </Link>
             </div>
