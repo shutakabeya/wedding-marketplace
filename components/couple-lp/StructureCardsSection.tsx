@@ -1,0 +1,89 @@
+'use client'
+
+export function StructureCardsSection() {
+  const cards = [
+    {
+      title: '高くなりやすい',
+      number: '平均総額 343.9万円',
+      supplement: 'さらに、見積は平均 4.4回やり取りされます',
+      highlight: '最初の金額が&quot;完成形&quot;じゃない',
+      description: '途中で増える余地が多いほど、最後に「こんなはずじゃ…」が起きやすい',
+    },
+    {
+      title: '不透明になりやすい',
+      number: '料理は 65.2%が見積UP',
+      supplement: '',
+      highlight: '「上がる」前提の項目がある',
+      description: '後からの調整が多いほど、内訳は分かりにくくなります',
+    },
+    {
+      title: '縛られやすい',
+      number: '規約に明記されがち',
+      supplement: '指定業者／持ち込み制限／持ち込み料',
+      highlight: '「選べない」は気分ではなく契約構造',
+      description: '自由度が低いほど、納得感は落ちやすい',
+    },
+    {
+      title: '面倒になりやすい',
+      number: '打ち合わせ 2時間×5〜6回が一般的',
+      supplement: '「準備が面倒」で結婚式をしない人 4人に1人',
+      highlight: 'DIYが大変なのではなく、調整構造が大変',
+      description: '面倒さは&quot;やり方&quot;で減らせます',
+    },
+  ]
+
+  return (
+    <section id="structure" className="py-16 lg:py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12 lg:mb-16">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+            なぜ、結婚式は&quot;微妙&quot;になりやすいのか。
+          </h2>
+          <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            結婚式は大きな買い物で、工程も長い。<br />
+            そのうえ「価格」「自由」「調整」「責任」がズレやすい設計になっています。
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
+          {cards.map((card, index) => (
+            <div
+              key={index}
+              className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 lg:p-8 border border-gray-200 hover:shadow-lg transition-shadow"
+            >
+              <div className="mb-4">
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  {card.number}
+                </div>
+                {card.supplement && (
+                  <div className="text-sm text-gray-600 mb-3">
+                    {card.supplement}
+                  </div>
+                )}
+              </div>
+              
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
+                {card.title}
+              </h3>
+              
+              <p className="text-base font-semibold text-gray-800 mb-3">
+                {card.highlight}
+              </p>
+              
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                {card.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 lg:mt-16 text-center">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-relaxed">
+            結婚式が微妙化するのは、あなたが下手だからじゃない。<br />
+            そうなりやすい構造があるだけ。
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}

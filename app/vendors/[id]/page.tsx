@@ -204,7 +204,7 @@ function VendorDetailContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-rose-50">
       <Header />
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* 戻るボタン（returnToパラメータがある場合のみ表示） */}
         {returnTo && (
           <div className="mb-6">
@@ -231,7 +231,7 @@ function VendorDetailContent() {
             if (allProfileImages.length === 0) return null
 
             return (
-              <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden shadow-2xl mb-6 group">
+              <div className="relative w-full h-96 rounded-2xl overflow-hidden shadow-2xl mb-6 group">
                 {/* メイン画像 */}
                 <div className="relative w-full h-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -312,9 +312,9 @@ function VendorDetailContent() {
               </div>
             )
           })()}
-          <div className="flex items-center gap-4 sm:gap-6 bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+          <div className="flex items-center gap-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
             {vendor.logoUrl && (
-              <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
+              <div className="relative w-28 h-28 flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={vendor.logoUrl}
@@ -327,8 +327,8 @@ function VendorDetailContent() {
                 />
               </div>
             )}
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-2 break-words">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">
                 {vendor.profile?.name || vendor.name}
               </h1>
               {vendor.profile?.name && (
@@ -348,13 +348,13 @@ function VendorDetailContent() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
             {/* ギャラリー */}
             {vendor.gallery.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   実績写真
@@ -389,9 +389,9 @@ function VendorDetailContent() {
 
             {/* プロフィール・説明 */}
             {vendor.bio && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">プロフィール</h2>
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm sm:text-base md:text-lg break-words">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">プロフィール</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-lg">
                   {vendor.bio}
                 </p>
               </div>
@@ -399,37 +399,37 @@ function VendorDetailContent() {
 
             {/* 提供内容 */}
             {vendor.profile?.services && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">提供内容</h2>
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm sm:text-base break-words">{vendor.profile.services}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">提供内容</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.services}</p>
               </div>
             )}
 
             {/* アクセス（会場のみ） */}
             {vendor.profile?.categoryType === 'venue' && vendor.profile?.access && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">アクセス</h2>
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm sm:text-base break-words">{vendor.profile.access}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">アクセス</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.access}</p>
               </div>
             )}
 
             {/* 制約 */}
             {vendor.profile?.constraints && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">制約・注意事項</h2>
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm sm:text-base break-words">{vendor.profile.constraints}</p>
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">制約・注意事項</h2>
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">{vendor.profile.constraints}</p>
               </div>
             )}
           </div>
 
           <div className="space-y-6">
             {/* 基本情報 */}
-            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 fade-in">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">基本情報</h2>
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">基本情報</h2>
               <div className="space-y-4">
                 <div className="pb-4 border-b border-gray-100">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">カテゴリ</div>
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base md:text-lg break-words">
+                  <div className="font-semibold text-gray-900 text-lg">
                     {vendor.categories.map((c) => c.category.name).join(', ')}
                   </div>
                 </div>
@@ -450,7 +450,7 @@ function VendorDetailContent() {
                 {vendor.profile && (
                   <div className="pb-4 border-b border-gray-100">
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">価格目安</div>
-                    <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                    <div className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
                       {vendor.profile.priceMin && (
                         <>¥{vendor.profile.priceMin.toLocaleString()}〜</>
                       )}
@@ -480,8 +480,8 @@ function VendorDetailContent() {
 
             {/* PlanBoardに追加 */}
             {planBoardSlots.length > 0 && vendor && (
-              <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 fade-in">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">PlanBoardに追加</h2>
+              <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">PlanBoardに追加</h2>
                 <p className="text-sm text-gray-600 mb-4 leading-relaxed">
                   このベンダーをPlanBoardに追加できます
                 </p>
@@ -514,8 +514,8 @@ function VendorDetailContent() {
             )}
 
             {/* 問い合わせフォーム */}
-            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 fade-in">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">問い合わせ</h2>
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 fade-in">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">問い合わせ</h2>
               <form onSubmit={handleSubmitInquiry} className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">

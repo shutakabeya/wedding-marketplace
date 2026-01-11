@@ -20,7 +20,7 @@ export default function Home() {
           </h1>
           <p className="max-w-3xl mx-auto text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed px-2">
             <span className="sm:hidden">
-              <Link href="/wedding-genie" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">WeddingGenie</Link>で理想のプランを見つけましょう。<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">PlanBoard</Link>からプランを管理できます。
+              理想のプランを<Link href="/wedding-genie" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">WeddingGenie</Link>で見つけましょう。<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">PlanBoard</Link>からプランを管理できます。
             </span>
             <span className="hidden sm:inline">
               イメージを<Link href="/wedding-genie" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">WeddingGenie</Link>に入力して、理想の結婚式プランを作り上げましょう。気になるベンダーは詳細から問い合わせて、<Link href="/couple/plan" className="text-pink-600 hover:text-pink-700 hover:underline font-semibold transition-colors">PlanBoard</Link>で全体像を組み立てていきましょう。

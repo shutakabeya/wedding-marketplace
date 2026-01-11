@@ -172,24 +172,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 PlanBoard
               </Link>
-              {isCoupleLoggedIn && (
-                <>
-                  <Link
-                    href="/wedding-genie/saved"
-                    onClick={onClose}
-                    className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"
-                  >
-                    保存済みプラン
-                  </Link>
-                  <Link
-                    href="/couple/inquiries"
-                    onClick={onClose}
-                    className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"
-                  >
-                    メッセージ・チャット
-                  </Link>
-                </>
-              )}
+              <Link
+                href="/wedding-genie/saved"
+                onClick={onClose}
+                className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"
+              >
+                保存済みプラン
+              </Link>
+              <Link
+                href="/couple/inquiries"
+                onClick={onClose}
+                className="block px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium"
+              >
+                チャット
+              </Link>
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
