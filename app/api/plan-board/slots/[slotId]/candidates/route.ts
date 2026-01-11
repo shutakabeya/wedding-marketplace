@@ -177,6 +177,23 @@ export async function DELETE(
       },
     })
 
+    // 削除後、残りのcandidates数とselectedVendorの有無を確認してstateを更新
+    const remainingCandidates = await prisma.planBoardCandidate.count({
+      where: {
+        planBoardSlotId: slotId,
+      },
+    })
+
+    const hasSelectedVendor = slot.selectedVendorId !== null
+
+    // selectedVendorがなく、残りのcandidatesもない場合、stateを'unselected'に更新
+    if (!hasSelectedVendor && remainingCandidates === 0 && slot.state === 'candidate') {
+      await prisma.planBoardSlot.update({
+        where: { id: slotId },
+        data: { state: 'unselected' },
+      })
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('PlanBoardCandidate DELETE error:', error)

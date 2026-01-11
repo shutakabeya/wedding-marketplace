@@ -152,6 +152,38 @@ export default function PlanBoardPage() {
     }
   }
 
+  const deleteCandidate = async (
+    slotId: string,
+    vendorId: string,
+    profileId: string | null
+  ) => {
+    try {
+      const params = new URLSearchParams({ vendorId })
+      if (profileId) {
+        params.append('profileId', profileId)
+      }
+
+      const res = await fetch(`/api/plan-board/slots/${slotId}/candidates?${params.toString()}`, {
+        method: 'DELETE',
+      })
+
+      if (res.status === 401) {
+        router.push('/couple/login')
+        return
+      }
+
+      if (!res.ok) {
+        throw new Error('削除に失敗しました')
+      }
+
+      await loadPlanBoard()
+      await loadInquiries()
+    } catch (error) {
+      console.error('Failed to delete candidate:', error)
+      alert('削除に失敗しました')
+    }
+  }
+
 
   const getStateColor = (state: string) => {
     switch (state) {
@@ -991,7 +1023,7 @@ export default function PlanBoardPage() {
                         >
                           詳細を見る
                         </Link>
-                        {slot.state === 'candidate' && !vendor.isSelected && (
+                        {slot.state === 'candidate' && (
                           <button
                             onClick={() =>
                               updateSlot(slot.id, {
@@ -1006,19 +1038,20 @@ export default function PlanBoardPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm('このベンダーを削除しますか？')) {
                               if (vendor.isSelected) {
-                                updateSlot(slot.id, {
-                                  state: 'unselected',
+                                // selectedVendorを削除
+                                // 削除後のcandidates数でstateを判定（削除前の数で判定）
+                                const remainingCandidatesCount = slot.candidates.length
+                                await updateSlot(slot.id, {
+                                  state: remainingCandidatesCount > 0 ? 'candidate' : 'unselected',
                                   selectedVendorId: null,
                                   selectedProfileId: null,
                                 })
                               } else {
-                                // candidatesから削除する処理は今後実装
-                                updateSlot(slot.id, {
-                                  state: slot.state,
-                                })
+                                // candidateを削除（API側でstateが適切に更新される）
+                                await deleteCandidate(slot.id, vendor.vendorId, vendor.profileId)
                               }
                             }
                           }}

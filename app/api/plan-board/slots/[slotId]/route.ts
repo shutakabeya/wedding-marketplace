@@ -43,17 +43,30 @@ export async function PATCH(
       )
     }
 
-      // candidates機能は削除されたため、candidatesの削除処理は不要
-
-      const updatedSlotData = await prisma.planBoardSlot.update({
-      where: { id: slotId },
-      data: {
-        state: data.state,
+      // selectedVendorIdがnullに設定される場合、stateを適切に更新する必要がある
+      let updateData: any = {
         selectedVendorId: data.selectedVendorId,
         selectedProfileId: data.selectedProfileId,
         estimatedCost: data.estimatedCost,
         note: data.note,
-      },
+      }
+
+      // stateが指定されている場合はそれを使用、指定されていない場合は自動判定
+      if (data.state !== undefined) {
+        updateData.state = data.state
+      } else if (data.selectedVendorId === null && slot.selectedVendorId !== null) {
+        // selectedVendorを削除する場合、残りのcandidates数を確認してstateを自動設定
+        const remainingCandidates = await prisma.planBoardCandidate.count({
+          where: {
+            planBoardSlotId: slotId,
+          },
+        })
+        updateData.state = remainingCandidates > 0 ? 'candidate' : 'unselected'
+      }
+
+      const updatedSlotData = await prisma.planBoardSlot.update({
+      where: { id: slotId },
+      data: updateData,
       include: {
         category: true,
           selectedProfile: true,
