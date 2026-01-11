@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getIdFromDisplayName, expandAreaIds, getMatchingAreaIds } from '@/lib/areas'
 
 export async function GET(request: NextRequest) {
   try {
@@ -66,12 +67,25 @@ export async function GET(request: NextRequest) {
         },
       })
 
-      // エリアで検索
-      keywordConditionsForThisKeyword.push({
-        areas: {
-          has: keyword,
-        },
-      })
+      // エリアで検索（地域グループにも対応）
+      // キーワードが地域名（日本語）の場合は、IDに変換して検索
+      const areaId = getIdFromDisplayName(keyword)
+      if (areaId) {
+        // 地域グループまたは個別エリアのIDが取得できた場合
+        const matchingAreaIds = getMatchingAreaIds(areaId)
+        keywordConditionsForThisKeyword.push({
+          areas: {
+            hasSome: matchingAreaIds,
+          },
+        })
+      } else {
+        // キーワードがID形式の可能性がある場合
+        keywordConditionsForThisKeyword.push({
+          areas: {
+            has: keyword,
+          },
+        })
+      }
 
       // ベンダーのbioで検索
       keywordConditionsForThisKeyword.push({

@@ -132,13 +132,23 @@ export function expandAreaIds(areaOrGroupIds: string[]): string[] {
 
 // 検索用：指定されたエリアID（またはグループID）で検索する際に、マッチする可能性のあるすべてのエリアID/グループIDを返す
 // 例: 'chiba' を検索 → ['chiba', 'kanto', 'zenkoku'] を返す
+// 例: 'kanto' を検索 → ['kanto', 'ibaraki', 'tochigi', 'gunma', 'saitama', 'chiba', 'tokyo', 'kanagawa'] を返す
+// 例: 'zenkoku' を検索 → ['zenkoku'] + すべての個別エリアID を返す
 export function getMatchingAreaIds(searchAreaId: string): string[] {
   const matching: string[] = [searchAreaId] // 自分自身
   
-  // このエリアを含むグループを探す
-  for (const group of AREA_GROUPS) {
-    if ((group.areaIds as readonly string[]).includes(searchAreaId)) {
-      matching.push(group.id)
+  // グループIDかどうかを確認
+  const group = AREA_GROUPS.find((g) => g.id === searchAreaId)
+  if (group) {
+    // グループIDの場合は、そのグループに含まれるすべての個別エリアIDも返す
+    matching.push(...group.areaIds)
+    return matching
+  }
+  
+  // 個別エリアIDの場合は、このエリアを含むグループを探す
+  for (const g of AREA_GROUPS) {
+    if ((g.areaIds as readonly string[]).includes(searchAreaId)) {
+      matching.push(g.id)
     }
   }
   
@@ -164,6 +174,21 @@ export const ALL_SELECTABLE_AREAS = [
 // エリアIDまたはグループIDから表示名を取得
 export function getDisplayName(id: string): string {
   return getAreaGroupName(id) || getAreaName(id) || id
+}
+
+// 表示名（日本語）からエリアIDまたはグループIDを取得
+export function getIdFromDisplayName(displayName: string): string | undefined {
+  // グループから検索
+  const group = AREA_GROUPS.find((g) => g.name === displayName)
+  if (group) {
+    return group.id
+  }
+  // 個別エリアから検索
+  const area = AREAS.find((a) => a.name === displayName)
+  if (area) {
+    return area.id
+  }
+  return undefined
 }
 
 // 検索用：ベンダープロフィールのエリア配列が、検索エリアとマッチするかどうかを判定

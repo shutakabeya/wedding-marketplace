@@ -30,9 +30,12 @@ export async function GET(request: NextRequest) {
     
     // エリアフィルタ：エリアマスタベースの検索（既存データとの互換性を保つ）
     // 既存データは自由入力の文字列（例: "東京都"）、新規データはエリアID（例: "tokyo"）
+    // 地域グループ（全国、関東、関西など）で検索した場合、そのグループに含まれるすべての都道府県がマッチする
     if (area) {
       // エリアマスタからマッチするエリアID/グループIDを取得
       // 例: 'chiba' を検索 → ['chiba', 'kanto', 'zenkoku'] を返す
+      // 例: 'kanto' を検索 → ['kanto', 'ibaraki', 'tochigi', ...] を返す（関東地方のすべての都道府県ID）
+      // 例: 'zenkoku' を検索 → ['zenkoku', ...] + すべての個別エリアID を返す
       const matchingAreaIds = getMatchingAreaIds(area)
       
       // エリアマスタベースの検索（新規データ）と既存データ（自由入力）の両方に対応
