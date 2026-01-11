@@ -9,7 +9,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-[85vh] flex items-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <section className="relative min-h-[85vh] flex items-center bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 w-full">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* 左：コピー */}
@@ -19,14 +19,14 @@ export function HeroSection() {
               ちゃんとした結婚式を。
             </h1>
             
-            <div className="space-y-3 text-xl sm:text-2xl text-gray-700 font-medium">
+            <div className="space-y-3 text-xl sm:text-2xl text-gray-800 font-medium">
               <p>驚くほど安く。</p>
               <p>驚くほど楽に。</p>
               <p>驚くほど透明で。</p>
               <p>驚くほど自由に。</p>
             </div>
 
-            <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-xl">
+            <p className="text-base sm:text-lg text-gray-700 leading-relaxed max-w-xl">
               「高い・面倒・不透明・縛られる」<br />
               それ、結婚式の仕様だと思い込んでいませんか？
             </p>
@@ -35,41 +35,41 @@ export function HeroSection() {
           {/* 右：数字バッジ＋矛盾の一言 */}
           <div className="space-y-8">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl p-4 sm:p-5 shadow-md border border-gray-100">
+              <div className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-md border-2 border-gray-200">
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                   343.9万円
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-700">
                   平均総額
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 sm:p-5 shadow-md border border-gray-100">
+              <div className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-md border-2 border-gray-200">
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                   4.4回
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-700">
                   見積平均
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 sm:p-5 shadow-md border border-gray-100">
+              <div className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-md border-2 border-gray-200">
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                   65.2%
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-700">
                   料理が見積UP
                 </div>
               </div>
-              <div className="bg-white rounded-xl p-4 sm:p-5 shadow-md border border-gray-100">
+              <div className="bg-gray-50 rounded-xl p-4 sm:p-5 shadow-md border-2 border-gray-200">
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                   4人に1人
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-700">
                   準備が面倒でやらない
                 </div>
               </div>
             </div>
 
-            <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed">
+            <p className="text-sm sm:text-base text-gray-700 text-center leading-relaxed">
               結婚式が&quot;微妙化しやすい&quot;のは、あなたのせいじゃない。<br />
               構造です。
             </p>

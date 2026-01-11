@@ -39,7 +39,7 @@ export function StructureCardsSection() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             なぜ、結婚式は&quot;微妙&quot;になりやすいのか。
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
             結婚式は大きな買い物で、工程も長い。<br />
             そのうえ「価格」「自由」「調整」「責任」がズレやすい設計になっています。
           </p>
@@ -49,14 +49,14 @@ export function StructureCardsSection() {
           {cards.map((card, index) => (
             <div
               key={index}
-              className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 lg:p-8 border border-gray-200 hover:shadow-lg transition-shadow"
+              className="bg-gray-50 rounded-xl p-6 lg:p-8 border-2 border-gray-300 hover:shadow-lg transition-shadow"
             >
               <div className="mb-4">
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {card.number}
                 </div>
                 {card.supplement && (
-                  <div className="text-sm text-gray-600 mb-3">
+                  <div className="text-sm text-gray-700 mb-3">
                     {card.supplement}
                   </div>
                 )}
@@ -66,11 +66,11 @@ export function StructureCardsSection() {
                 {card.title}
               </h3>
               
-              <p className="text-base font-semibold text-gray-800 mb-3">
+              <p className="text-base font-semibold text-gray-900 mb-3">
                 {card.highlight}
               </p>
               
-              <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
                 {card.description}
               </p>
             </div>

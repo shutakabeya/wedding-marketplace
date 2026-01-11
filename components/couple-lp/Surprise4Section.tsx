@@ -48,7 +48,7 @@ export function Surprise4Section() {
         ],
       },
       data: '結婚式の見積は平均 4.4回。\n＝最初から"最適化されていない"。\n最初に整理すれば、後で削る必要はない。',
-      bgColor: 'bg-gradient-to-br from-pink-50 to-rose-50',
+      bgColor: 'bg-gradient-to-br from-pink-100 to-rose-100',
     },
     {
       id: 'easy',
@@ -135,7 +135,7 @@ export function Surprise4Section() {
       },
       data: '',
       conclusionNote: '透明さは、安心感そのものです。',
-      bgColor: 'bg-gradient-to-br from-purple-50 to-indigo-50',
+      bgColor: 'bg-gradient-to-br from-purple-100 to-indigo-100',
     },
     {
       id: 'free',
@@ -188,10 +188,10 @@ export function Surprise4Section() {
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
             驚くほど◯◯
           </h2>
-          <p className="text-lg sm:text-xl text-gray-600">
+          <p className="text-lg sm:text-xl text-gray-700">
             ― 結婚式を&quot;作り直す&quot;と、ここまで変わる ―
           </p>
-          <p className="text-base sm:text-lg text-gray-500 mt-4">
+          <p className="text-base sm:text-lg text-gray-600 mt-4">
             ここは「理屈」ではなく<br />
             &quot;あ、確かにそうだわ&quot; が連続する場所。
           </p>
@@ -201,7 +201,7 @@ export function Surprise4Section() {
           {sections.map((section, index) => (
             <div
               key={section.id}
-              className={`${section.bgColor} py-12 lg:py-16 ${index !== sections.length - 1 ? 'border-b border-gray-200' : ''}`}
+              className={`${section.bgColor} py-12 lg:py-16 ${index !== sections.length - 1 ? 'border-b-2 border-gray-300' : ''}`}
             >
               <div className="max-w-5xl mx-auto">
                 <h3 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8 text-center">
@@ -221,9 +221,9 @@ export function Surprise4Section() {
                     <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
                       {section.whyBefore.title}
                     </h4>
-                    <div className="space-y-2 text-base sm:text-lg text-gray-700 leading-relaxed">
+                    <div className="space-y-2 text-base sm:text-lg text-gray-800 leading-relaxed">
                       {section.whyBefore.content.map((line, i) => (
-                        <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold' : ''}>
+                        <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold text-gray-900' : ''}>
                           {line}
                         </p>
                       ))}
@@ -235,9 +235,9 @@ export function Surprise4Section() {
                     <h4 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
                       {section.whatChanged.title}
                     </h4>
-                    <div className="space-y-2 text-base sm:text-lg text-gray-700 leading-relaxed">
+                    <div className="space-y-2 text-base sm:text-lg text-gray-800 leading-relaxed">
                       {section.whatChanged.content.map((line, i) => (
-                        <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold' : ''}>
+                        <p key={i} className={line.startsWith('「') || line.includes('Wedding Market') ? 'font-semibold text-gray-900' : ''}>
                           {line}
                         </p>
                       ))}
@@ -252,7 +252,7 @@ export function Surprise4Section() {
                   </h4>
                   <ul className="space-y-3 max-w-2xl mx-auto">
                     {section.whatHappens.items.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-base sm:text-lg text-gray-700">
+                      <li key={i} className="flex items-start gap-3 text-base sm:text-lg text-gray-800">
                         <span className="text-pink-600 font-bold mt-1">✓</span>
                         <span>{item}</span>
                       </li>
@@ -264,7 +264,7 @@ export function Surprise4Section() {
                 {(section.data || section.conclusionNote) && (
                   <div className="mt-8 text-center">
                     {section.data && (
-                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-3">
+                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed mb-3">
                         {section.data.split('\n').map((line, i) => (
                           <span key={i}>
                             {line}
@@ -286,7 +286,7 @@ export function Surprise4Section() {
         </div>
 
         {/* セクション締め */}
-        <div className="mt-12 lg:mt-16 text-center bg-gray-50 rounded-xl p-8 lg:p-12">
+        <div className="mt-12 lg:mt-16 text-center bg-gray-100 rounded-xl p-8 lg:p-12 border-2 border-gray-300">
           <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-relaxed space-y-2">
             <span className="block">安いのは、削ったからじゃない。</span>
             <span className="block">楽なのは、頑張ったからじゃない。</span>
