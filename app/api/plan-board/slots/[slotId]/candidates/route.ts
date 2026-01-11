@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 const addCandidateSchema = z.object({
   vendorId: z.string().uuid(),
+  profileId: z.string().uuid().optional(),
 })
 
 export async function POST(
@@ -83,14 +84,7 @@ export async function POST(
         source: 'manual',
       },
       include: {
-        vendor: {
-          include: {
-            profiles: {
-              where: { isDefault: true },
-              take: 1,
-            },
-          },
-        },
+        vendor: true,
         profile: true,
       },
     })
@@ -103,16 +97,7 @@ export async function POST(
       })
     }
 
-    // 既存のAPIとの互換性のため、profileとしてデフォルトプロフィールを返す
-    const candidate = {
-      ...candidateData,
-      vendor: {
-        ...candidateData.vendor,
-        profile: candidateData.vendor.profiles[0] || null,
-      },
-    }
-
-    return NextResponse.json({ candidate })
+    return NextResponse.json({ candidate: candidateData })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

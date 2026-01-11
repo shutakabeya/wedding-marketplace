@@ -20,14 +20,7 @@ export async function GET() {
           include: {
             category: true,
             selectedProfile: true,
-            selectedVendor: {
-              include: {
-                profiles: {
-                  where: { isDefault: true },
-                  take: 1,
-                },
-              },
-            },
+            selectedVendor: true,
             candidates: {
               include: {
                 vendor: true,
